@@ -1,7 +1,7 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Data;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -9,23 +9,29 @@ namespace Quanlilaptop
 {
     public partial class FormSanPham : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSanPham()
         {
             InitializeComponent();
             napdgvsanpham();
             dgvSanpham.CellEndEdit += dgvSanpham_CellEndEdit;
         }
+
         public void napdgvsanpham()
         {
-            string sql = "SELECT id AS 'ID',ten_sanpham AS 'Tên sản phẩm',loai AS 'Loại',co_the_ban AS 'Có thể bán',ton_kho AS 'Tồn kho',ngay_khoi_tao AS 'Ngày khởi tạo',donvitinh AS 'Đơn vị tính',chitietsanpham AS 'Chi tiết sản phẩm',don_gia AS 'Đơn giá',baohanhcuahang AS 'Bảo hành cửa hàng'FROM sanpham;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            string sql = "SELECT id AS 'ID', ten_sanpham AS 'Tên sản phẩm', loai AS 'Loại', co_the_ban AS 'Có thể bán', ton_kho AS 'Tồn kho', ngay_khoi_tao AS 'Ngày khởi tạo', donvitinh AS 'Đơn vị tính', chitietsanpham AS 'Chi tiết sản phẩm', don_gia AS 'Đơn giá', baohanhcuahang AS 'Bảo hành cửa hàng' FROM sanpham;";
+
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvSanpham.DataSource = table;
+
                 foreach (DataGridViewColumn col in dgvSanpham.Columns)
                 {
                     if (col.Name == "ID")
@@ -35,6 +41,7 @@ namespace Quanlilaptop
                 }
             }
         }
+
         private void btnXuatfile_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog
@@ -51,12 +58,12 @@ namespace Quanlilaptop
                     string filePath = saveFileDialog.FileName;
 
                     DataTable tableSanPham = new DataTable();
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         conn.Open();
                         string sql = "SELECT id, ten_sanpham, loai, co_the_ban, ton_kho, ngay_khoi_tao, donvitinh, chitietsanpham, don_gia, baohanhcuahang FROM sanpham";
-                        MySqlCommand command = new MySqlCommand(sql, conn);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                        SqlCommand command = new SqlCommand(sql, conn);
+                        SqlDataAdapter adapter = new SqlDataAdapter(command);
                         adapter.Fill(tableSanPham);
                     }
 
@@ -69,9 +76,9 @@ namespace Quanlilaptop
                     using (DocX document = DocX.Create(filePath))
                     {
                         var title = document.InsertParagraph("DANH SÁCH SẢN PHẨM")
-                                             .Bold()
-                                             .FontSize(16)
-                                             .Alignment = Alignment.center;
+                                           .Bold()
+                                           .FontSize(16)
+                                           .Alignment = Alignment.center;
 
                         document.InsertParagraph("\n");
 
@@ -102,7 +109,6 @@ namespace Quanlilaptop
                     MessageBox.Show("Lỗi khi xuất Word: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-
         }
 
         private void btnTimkiem_Click(object sender, EventArgs e)
@@ -111,35 +117,35 @@ namespace Quanlilaptop
             {
                 string keyword = txtTimkiem.Text.Trim();
 
+                // Đã chuyển đổi các cột số/ngày sang VARCHAR để dùng được toán tử LIKE trong SQL Server
                 string sql = @"SELECT id, ten_sanpham, loai, co_the_ban, ton_kho, ngay_khoi_tao, donvitinh, chitietsanpham 
                        FROM sanpham 
                        WHERE id LIKE @keyword
                           OR ten_sanpham LIKE @keyword
                           OR loai LIKE @keyword
-                          OR co_the_ban LIKE @keyword
-                          OR ton_kho LIKE @keyword
-                          OR ngay_khoi_tao LIKE @keyword
+                          OR CAST(co_the_ban AS VARCHAR(50)) LIKE @keyword
+                          OR CAST(ton_kho AS VARCHAR(50)) LIKE @keyword
+                          OR CAST(ngay_khoi_tao AS VARCHAR(50)) LIKE @keyword
                           OR donvitinh LIKE @keyword
                           OR chitietsanpham LIKE @keyword";
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
 
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                    SqlDataAdapter adapter = new SqlDataAdapter(command);
                     DataTable table = new DataTable();
                     adapter.Fill(table);
 
                     dgvSanpham.DataSource = table;
-
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Lỗi khi tìm kiếm: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }      
+            }
         }
 
         private void panel1_Paint(object sender, PaintEventArgs e)
@@ -205,20 +211,20 @@ namespace Quanlilaptop
                         baohanhcuahang = @baoHanh
                        WHERE id = @id";
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=;Allow Zero Datetime=True;Convert Zero Datetime=True"))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
-                        cmd.Parameters.AddWithValue("@ten", tenSP);
-                        cmd.Parameters.AddWithValue("@loai", loai);
-                        cmd.Parameters.AddWithValue("@dvt", donViTinh);
-                        cmd.Parameters.AddWithValue("@chitiet", chiTiet);
+                        cmd.Parameters.AddWithValue("@ten", tenSP ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@loai", loai ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@dvt", donViTinh ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@chitiet", chiTiet ?? (object)DBNull.Value);
                         cmd.Parameters.AddWithValue("@ngay", DateTime.TryParse(ngayKhoiTao, out DateTime date) ? date : (object)DBNull.Value);
                         cmd.Parameters.AddWithValue("@coTheBan", coTheBan);
                         cmd.Parameters.AddWithValue("@tonKho", tonKho);
                         cmd.Parameters.AddWithValue("@donGia", donGia);
-                        cmd.Parameters.AddWithValue("@baoHanh", baoHanh);
+                        cmd.Parameters.AddWithValue("@baoHanh", baoHanh ?? (object)DBNull.Value);
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.ExecuteNonQuery();
                     }
@@ -234,4 +240,3 @@ namespace Quanlilaptop
         }
     }
 }
-

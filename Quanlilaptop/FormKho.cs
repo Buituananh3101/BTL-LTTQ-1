@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,17 +7,22 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormKho : Form
     {
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormKho()
         {
             InitializeComponent();
             LoadnhanvienToComboBox();
             napdgvkho();
         }
+
         public void napdgvkho()
         {
             string sql = "SELECT     " +
@@ -29,29 +33,29 @@ namespace Quanlilaptop
                 "nguoi_quan_ly AS 'Người quản lý',     " +
                 "trang_thai AS 'Trạng thái',    " +
                 "ngay_cap_nhat AS 'Ngày cập nhật' FROM kho;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvKho.DataSource = table;
                 dgvKho.Columns["Mã kho"].ReadOnly = true;
-
             }
-
         }
+
         private void LoadnhanvienToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT user_name FROM nhanvien";
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbQuanly.Items.Clear();
                         while (reader.Read())
@@ -59,17 +63,17 @@ namespace Quanlilaptop
                             cbbQuanly.Items.Add(reader["user_name"].ToString());
                         }
                     }
-
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Lỗi khi load ComboBox sản phẩm: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi khi load ComboBox nhân viên quản lý: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void textBox3_TextChanged(object sender, EventArgs e)
         {
-
+            // none
         }
 
         private void btnThoat_Click(object sender, EventArgs e)
@@ -85,7 +89,7 @@ namespace Quanlilaptop
             string soDienThoai = txtSdt.Text.Trim();
             string nguoiQuanLy = cbbQuanly.SelectedItem?.ToString();
             string trangThai = txtTT.Text.Trim();
-            DateTime ngayCapNhat = dtpKho.Value; 
+            DateTime ngayCapNhat = dtpKho.Value;
 
             if (string.IsNullOrEmpty(maKho) || string.IsNullOrEmpty(tenKho) ||
                 string.IsNullOrEmpty(diaChi) || string.IsNullOrEmpty(soDienThoai) ||
@@ -97,16 +101,16 @@ namespace Quanlilaptop
             string userName = nguoiQuanLy.Split('-')[0].Trim();
 
             string sql = @"
-        INSERT INTO kho (maKho, ten_kho, dia_chi, so_dien_thoai, nguoi_quan_ly, trang_thai, ngay_cap_nhat)
-        VALUES (@maKho, @tenKho, @diaChi, @soDienThoai, @nguoiQuanLy, @trangThai, @ngayCapNhat);
-    ";
+                INSERT INTO kho (maKho, ten_kho, dia_chi, so_dien_thoai, nguoi_quan_ly, trang_thai, ngay_cap_nhat)
+                VALUES (@maKho, @tenKho, @diaChi, @soDienThoai, @nguoiQuanLy, @trangThai, @ngayCapNhat);
+            ";
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 try
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
                     cmd.Parameters.AddWithValue("@maKho", maKho);
                     cmd.Parameters.AddWithValue("@tenKho", tenKho);
                     cmd.Parameters.AddWithValue("@diaChi", diaChi);
@@ -150,27 +154,27 @@ namespace Quanlilaptop
                 DateTime ngayCapNhatDT = DateTime.TryParse(ngayCapNhat, out DateTime d) ? d : DateTime.Now;
 
                 string sql = @"
-            UPDATE kho SET 
-                ten_kho = @tenKho,
-                dia_chi = @diaChi,
-                so_dien_thoai = @soDienThoai,
-                nguoi_quan_ly = @nguoiQuanLy,
-                trang_thai = @trangThai,
-                ngay_cap_nhat = @ngayCapNhat
-            WHERE maKho = @maKho
-        ";
+                    UPDATE kho SET 
+                        ten_kho = @tenKho,
+                        dia_chi = @diaChi,
+                        so_dien_thoai = @soDienThoai,
+                        nguoi_quan_ly = @nguoiQuanLy,
+                        trang_thai = @trangThai,
+                        ngay_cap_nhat = @ngayCapNhat
+                    WHERE maKho = @maKho
+                ";
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
-                    cmd.Parameters.AddWithValue("@tenKho", tenKho);
-                    cmd.Parameters.AddWithValue("@diaChi", diaChi);
-                    cmd.Parameters.AddWithValue("@soDienThoai", soDienThoai);
-                    cmd.Parameters.AddWithValue("@nguoiQuanLy", nguoiQuanLy);
-                    cmd.Parameters.AddWithValue("@trangThai", trangThai);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
+                    cmd.Parameters.AddWithValue("@tenKho", tenKho ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@diaChi", diaChi ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@so_dien_thoai", soDienThoai ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@nguoiQuanLy", nguoiQuanLy ?? (object)DBNull.Value);
+                    cmd.Parameters.AddWithValue("@trangThai", trangThai ?? (object)DBNull.Value);
                     cmd.Parameters.AddWithValue("@ngayCapNhat", ngayCapNhatDT);
-                    cmd.Parameters.AddWithValue("@maKho", maKho);
+                    cmd.Parameters.AddWithValue("@maKho", maKho ?? (object)DBNull.Value);
 
                     cmd.ExecuteNonQuery();
                 }

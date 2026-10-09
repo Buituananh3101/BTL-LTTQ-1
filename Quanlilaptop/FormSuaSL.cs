@@ -1,7 +1,13 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
+using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Quanlilaptop
@@ -19,14 +25,17 @@ namespace Quanlilaptop
 
         private FormSanPham formSanPham;
 
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public void napdgvchitiet()
         {
             string sql = "SELECT * FROM chitietsoluongsanpham";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvChitiet.DataSource = table;
@@ -51,12 +60,12 @@ namespace Quanlilaptop
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT id FROM sanpham";
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMaSP.Items.Clear();
                         while (reader.Read())
@@ -76,12 +85,12 @@ namespace Quanlilaptop
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT maPhieu FROM phieunhap";
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMaphieu.Items.Clear();
                         while (reader.Read())
@@ -134,13 +143,13 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string checkQuery = @"SELECT COUNT(*) FROM chitietsoluongsanpham 
-                                  WHERE ma_san_pham = @maSanPham AND maPhieu = @maPhieu";
+                                    WHERE ma_san_pham = @maSanPham AND maPhieu = @maPhieu";
 
-                    using (MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn))
+                    using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
                     {
                         checkCmd.Parameters.AddWithValue("@maSanPham", maSanPham);
                         checkCmd.Parameters.AddWithValue("@maPhieu", maPhieu);
@@ -152,13 +161,14 @@ namespace Quanlilaptop
                             return;
                         }
                     }
+
                     string updateQuery = @"UPDATE chitietsoluongsanpham
                                    SET san_pham_chua_kiem_tra = @sanPhamChuaKiemtra,
                                        san_pham_loi = @sanPhamLoi,
                                        san_pham_ktv = @sanPhamKTV
                                    WHERE ma_san_pham = @maSanPham AND maPhieu = @maPhieu";
 
-                    using (MySqlCommand cmd = new MySqlCommand(updateQuery, conn))
+                    using (SqlCommand cmd = new SqlCommand(updateQuery, conn))
                     {
                         cmd.Parameters.AddWithValue("@maSanPham", maSanPham);
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
@@ -193,19 +203,19 @@ namespace Quanlilaptop
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    string query = @" UPDATE sanpham
-                                        SET co_the_ban = ton_kho - (
-                                            SELECT 
-                                                SUM(san_pham_chua_kiem_tra + san_pham_loi + san_pham_ktv)
-                                            FROM chitietsoluongsanpham
-                                            WHERE ma_san_pham = @maSanPham
-                                        )
-                                        WHERE id = @maSanPham";
+                    // Dùng ISNULL thay vì hàm kiểm tra null của MySQL
+                    string query = @"UPDATE sanpham
+                                    SET co_the_ban = ton_kho - ISNULL((
+                                        SELECT SUM(san_pham_chua_kiem_tra + san_pham_loi + san_pham_ktv)
+                                        FROM chitietsoluongsanpham
+                                        WHERE ma_san_pham = @maSanPham
+                                    ), 0)
+                                    WHERE id = @maSanPham";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@maSanPham", maSanPham);
                         cmd.ExecuteNonQuery();
@@ -255,14 +265,14 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = @"INSERT INTO chitietsoluongsanpham 
-                                     (ma_san_pham, san_pham_chua_kiem_tra, san_pham_loi, san_pham_ktv, maPhieu)
-                                     VALUES (@maSanPham, @sanPhamChuaKiemtra, @sanPhamLoi, @sanPhamKTV, @maPhieu)";
+                                   (ma_san_pham, san_pham_chua_kiem_tra, san_pham_loi, san_pham_ktv, maPhieu)
+                                   VALUES (@maSanPham, @sanPhamChuaKiemtra, @sanPhamLoi, @sanPhamKTV, @maPhieu)";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@maSanPham", maSanPham);
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
@@ -289,7 +299,6 @@ namespace Quanlilaptop
             {
                 MessageBox.Show("Lỗi khi thêm dữ liệu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-        } 
+        }
     }
 }
-

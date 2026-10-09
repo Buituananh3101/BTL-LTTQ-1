@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -15,22 +15,27 @@ namespace Quanlilaptop
 {
     public partial class FormCongNo : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormCongNo()
         {
             InitializeComponent();
             napdgvcongno();
         }
+
         public void napdgvcongno()
         {
             string sql = "SELECT c.ma_cong_no AS 'Mã Công Nợ', c.ma_phieu_nhap AS 'Mã Phiếu Nhập', c.ngay_phat_sinh AS 'Ngày Phát Sinh'," +
-                "  c.so_tien_no AS 'Số Tiền Nợ', c.trang_thai AS 'Trạng Thái',  c.ghi_chu AS 'Ghi Chú', " +
+                " c.so_tien_no AS 'Số Tiền Nợ', c.trang_thai AS 'Trạng Thái', c.ghi_chu AS 'Ghi Chú', " +
                 " p.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp', ncc.ten_nha_cung_cap AS 'Tên nhà cung cấp'" +
-                "FROM congnonhacungcap c LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu LEFT JOIN nhacungcap ncc ON p.ma_nha_cung_cap = ncc.ma_nha_cung_cap;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                " FROM congnonhacungcap c LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu LEFT JOIN nhacungcap ncc ON p.ma_nha_cung_cap = ncc.ma_nha_cung_cap;";
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvCongno.DataSource = table;
@@ -111,39 +116,37 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
             string query = @"
-                            SELECT
-                                c.ma_cong_no AS 'Mã Công Nợ',
-                                c.ma_phieu_nhap AS 'Mã Phiếu Nhập',
-                                c.ngay_phat_sinh AS 'Ngày Phát Sinh',
-                                c.so_tien_no AS 'Số Tiền Nợ',
-                                c.trang_thai AS 'Trạng Thái',
-                                c.ghi_chu AS 'Ghi Chú',
-                                p.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp',
-                                n.ten_nha_cung_cap AS 'Tên Nhà Cung Cấp'
-                            FROM congnonhacungcap c
-                            LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu
-                            LEFT JOIN nhacungcap n ON p.ma_nha_cung_cap = n.ma_nha_cung_cap
-                            WHERE 
-                                c.ma_cong_no LIKE @keyword OR
-                                c.ma_phieu_nhap LIKE @keyword OR
-                                c.ngay_phat_sinh LIKE @keyword OR
-                                c.trang_thai LIKE @keyword OR
-                                c.ghi_chu LIKE @keyword OR
-                                p.ma_nha_cung_cap LIKE @keyword OR
-                                n.ten_nha_cung_cap LIKE @keyword";
+                SELECT
+                    c.ma_cong_no AS 'Mã Công Nợ',
+                    c.ma_phieu_nhap AS 'Mã Phiếu Nhập',
+                    c.ngay_phat_sinh AS 'Ngày Phát Sinh',
+                    c.so_tien_no AS 'Số Tiền Nợ',
+                    c.trang_thai AS 'Trạng Thái',
+                    c.ghi_chu AS 'Ghi Chú',
+                    p.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp',
+                    n.ten_nha_cung_cap AS 'Tên Nhà Cung Cấp'
+                FROM congnonhacungcap c
+                LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu
+                LEFT JOIN nhacungcap n ON p.ma_nha_cung_cap = n.ma_nha_cung_cap
+                WHERE 
+                    c.ma_cong_no LIKE @keyword OR
+                    c.ma_phieu_nhap LIKE @keyword OR
+                    c.ngay_phat_sinh LIKE @keyword OR
+                    c.trang_thai LIKE @keyword OR
+                    c.ghi_chu LIKE @keyword OR
+                    p.ma_nha_cung_cap LIKE @keyword OR
+                    n.ten_nha_cung_cap LIKE @keyword";
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
 
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     adapter.Fill(dt);
 
@@ -183,15 +186,13 @@ namespace Quanlilaptop
             {
                 try
                 {
-                    string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
-                    using (MySqlConnection conn = new MySqlConnection(connectionString))
+                    using (SqlConnection conn = new SqlConnection(connectionString))
                     {
                         conn.Open();
 
                         string query = "DELETE FROM congnonhacungcap WHERE ma_cong_no = @maCongNo";
 
-                        MySqlCommand cmd = new MySqlCommand(query, conn);
+                        SqlCommand cmd = new SqlCommand(query, conn);
                         cmd.Parameters.AddWithValue("@maCongNo", maCongNo);
 
                         int rowsAffected = cmd.ExecuteNonQuery();
@@ -233,28 +234,28 @@ namespace Quanlilaptop
 
             string filePath = saveFileDialog.FileName;
             string sql = @"
-        SELECT
-            c.ma_cong_no AS 'Mã Công Nợ',
-            c.ma_phieu_nhap AS 'Mã Phiếu Nhập',
-            c.ngay_phat_sinh AS 'Ngày Phát Sinh',
-            c.so_tien_no AS 'Số Tiền Nợ',
-            c.trang_thai AS 'Trạng Thái',
-            c.ghi_chu AS 'Ghi Chú',
-            p.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp',
-            n.ten_nha_cung_cap AS 'Tên Nhà Cung Cấp'
-        FROM congnonhacungcap c
-        LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu
-        LEFT JOIN nhacungcap n ON p.ma_nha_cung_cap = n.ma_nha_cung_cap;
-    ";
+                SELECT
+                    c.ma_cong_no AS 'Mã Công Nợ',
+                    c.ma_phieu_nhap AS 'Mã Phiếu Nhập',
+                    c.ngay_phat_sinh AS 'Ngày Phát Sinh',
+                    c.so_tien_no AS 'Số Tiền Nợ',
+                    c.trang_thai AS 'Trạng Thái',
+                    c.ghi_chu AS 'Ghi Chú',
+                    p.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp',
+                    n.ten_nha_cung_cap AS 'Tên Nhà Cung Cấp'
+                FROM congnonhacungcap c
+                LEFT JOIN phieunhap p ON c.ma_phieu_nhap = p.maPhieu
+                LEFT JOIN nhacungcap n ON p.ma_nha_cung_cap = n.ma_nha_cung_cap;
+            ";
 
             DataTable dt = new DataTable();
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
                 }
 

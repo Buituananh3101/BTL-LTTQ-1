@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -15,24 +15,29 @@ namespace Quanlilaptop
 {
     public partial class FormKhachHang : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormKhachHang()
         {
             InitializeComponent();
             napdgvkhachhang();
         }
+
         public void napdgvkhachhang()
         {
             string sql = "SELECT id_khach_hang AS 'ID Khách Hàng', ho_ten AS 'Họ Tên', Sdt AS 'Số Điện Thoại', dia_chi AS 'Địa Chỉ' FROM khachhang;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvCustomer.DataSource = table;
             }
         }
+
         private void btnThemKH_Click(object sender, EventArgs e)
         {
             FormThemKhachHang form = new FormThemKhachHang(this);
@@ -58,13 +63,13 @@ namespace Quanlilaptop
 
                 if (result == DialogResult.Yes)
                 {
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         try
                         {
                             conn.Open();
                             string sql = "DELETE FROM khachhang WHERE id_khach_hang = @id";
-                            MySqlCommand command = new MySqlCommand(sql, conn);
+                            SqlCommand command = new SqlCommand(sql, conn);
                             command.Parameters.AddWithValue("@id", idKhachHang);
 
                             int rowsAffected = command.ExecuteNonQuery();
@@ -108,12 +113,12 @@ namespace Quanlilaptop
                     string filePath = saveFileDialog.FileName;
 
                     DataTable tableKH = new DataTable();
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         conn.Open();
                         string sql = "SELECT id_khach_hang, ho_ten, sdt, dia_chi FROM khachhang";
-                        MySqlCommand command = new MySqlCommand(sql, conn);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                        SqlCommand command = new SqlCommand(sql, conn);
+                        SqlDataAdapter adapter = new SqlDataAdapter(command);
                         adapter.Fill(tableKH);
                     }
 
@@ -160,7 +165,6 @@ namespace Quanlilaptop
                     MessageBox.Show("Lỗi khi xuất Word: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-
         }
 
         private void btnTK_Click(object sender, EventArgs e)
@@ -176,12 +180,12 @@ namespace Quanlilaptop
                       OR Sdt LIKE @keyword
                       OR dia_chi LIKE @keyword";
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                    SqlDataAdapter adapter = new SqlDataAdapter(command);
                     DataTable table = new DataTable();
                     adapter.Fill(table);
 

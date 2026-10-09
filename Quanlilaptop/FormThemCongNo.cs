@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,12 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormThemCongNo : Form
     {
         private FormCongNo formCN;
+
+        // Khai báo chuỗi kết nối SQL Server chung
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormThemCongNo(FormCongNo form)
         {
             InitializeComponent();
@@ -25,17 +29,18 @@ namespace Quanlilaptop
         {
             this.Close();
         }
+
         private void LoadmaphieunhapToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string query = "SELECT maPhieu FROM phieunhap";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMaphieunhap.Items.Clear();
 
@@ -79,37 +84,37 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
                     string insertQuery = @"
-                INSERT INTO congnonhacungcap
-                (ma_cong_no, ma_phieu_nhap, ngay_phat_sinh, trang_thai, ghi_chu)
-                VALUES
-                (@maCongNo, @maPhieuNhap, @ngayPhatSinh, @trangThai, @ghiChu)";
+                        INSERT INTO congnonhacungcap
+                        (ma_cong_no, ma_phieu_nhap, ngay_phat_sinh, trang_thai, ghi_chu)
+                        VALUES
+                        (@maCongNo, @maPhieuNhap, @ngayPhatSinh, @trangThai, @ghiChu)";
 
-                    MySqlCommand cmdInsert = new MySqlCommand(insertQuery, conn);
-                    cmdInsert.Parameters.AddWithValue("@maCongNo", maCongNo);
-                    cmdInsert.Parameters.AddWithValue("@maPhieuNhap", maPhieuNhap);
-                    cmdInsert.Parameters.AddWithValue("@ngayPhatSinh", ngayPhatSinh);
-                    cmdInsert.Parameters.AddWithValue("@trangThai", trangThai);
-                    cmdInsert.Parameters.AddWithValue("@ghiChu", ghiChu);
-
-                    int rowsAffected = cmdInsert.ExecuteNonQuery();
-
-                    if (rowsAffected > 0)
+                    using (SqlCommand cmdInsert = new SqlCommand(insertQuery, conn))
                     {
-                        MessageBox.Show("Thêm công nợ nhà cung cấp thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        formCN.napdgvcongno();
-                    }
-                    else
-                    {
-                        MessageBox.Show("Thêm công nợ thất bại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        cmdInsert.Parameters.AddWithValue("@maCongNo", maCongNo);
+                        cmdInsert.Parameters.AddWithValue("@maPhieuNhap", maPhieuNhap);
+                        cmdInsert.Parameters.AddWithValue("@ngayPhatSinh", ngayPhatSinh);
+                        cmdInsert.Parameters.AddWithValue("@trangThai", trangThai);
+                        cmdInsert.Parameters.AddWithValue("@ghiChu", string.IsNullOrEmpty(ghiChu) ? (object)DBNull.Value : ghiChu);
+
+                        int rowsAffected = cmdInsert.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            MessageBox.Show("Thêm công nợ nhà cung cấp thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            formCN.napdgvcongno();
+                        }
+                        else
+                        {
+                            MessageBox.Show("Thêm công nợ thất bại!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
                     }
                 }
             }

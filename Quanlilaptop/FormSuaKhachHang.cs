@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,29 +7,35 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaKhachHang : Form
     {
         private FormKhachHang formKH;
+
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaKhachHang(FormKhachHang form)
         {
             InitializeComponent();
             LoadmakhachhangToComboBox();
             formKH = form;
         }
+
         private void LoadmakhachhangToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    string query = "SELECT id_khach_hang FROM khachhang";
+                    string query = "SELECT id_khach_hang FROM khachhang"; //[cite: 1]
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMaKH.Items.Clear();
 
@@ -46,6 +51,7 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void btnThoat_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -66,16 +72,16 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string sql = @"UPDATE khachhang 
-                           SET ho_ten = @hoTen,
-                               sdt = @sdt,
-                               dia_chi = @diaChi
-                           WHERE id_khach_hang = @idKH";
+                                   SET ho_ten = @hoTen,
+                                       sdt = @sdt,
+                                       dia_chi = @diaChi
+                                   WHERE id_khach_hang = @idKH"; //[cite: 1]
 
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@hoTen", hoTen);
                     command.Parameters.AddWithValue("@sdt", sdt);
                     command.Parameters.AddWithValue("@diaChi", diaChi);
@@ -103,22 +109,25 @@ namespace Quanlilaptop
 
         private void cbbMaKH_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (cbbMaKH.SelectedItem == null) return;
             string idKH = cbbMaKH.SelectedItem.ToString();
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                string sql = "SELECT ho_ten, sdt, dia_chi FROM khachhang WHERE id_khach_hang = @id";
-                MySqlCommand command = new MySqlCommand(sql, conn);
+                string sql = "SELECT ho_ten, sdt, dia_chi FROM khachhang WHERE id_khach_hang = @id"; //[cite: 1]
+                SqlCommand command = new SqlCommand(sql, conn);
                 command.Parameters.AddWithValue("@id", idKH);
-                MySqlDataReader reader = command.ExecuteReader();
 
-                if (reader.Read())
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    txtHoten.Text = reader["ho_ten"].ToString();
-                    txtSdt.Text = reader["sdt"].ToString();
-                    txtDiachi.Text = reader["dia_chi"].ToString();
+                    if (reader.Read())
+                    {
+                        txtHoten.Text = reader["ho_ten"].ToString();
+                        txtSdt.Text = reader["sdt"].ToString();
+                        txtDiachi.Text = reader["dia_chi"].ToString();
+                    }
                 }
-                reader.Close();
             }
         }
     }

@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,12 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormThemKhachHang : Form
     {
         private FormKhachHang formKH;
+
+        // Khai báo chuỗi kết nối SQL Server chung
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormThemKhachHang(FormKhachHang form)
         {
             InitializeComponent();
@@ -29,15 +33,15 @@ namespace Quanlilaptop
         {
             try
             {
-                string idKH = txtID.Text.Trim();       
-                string hoTen = txtHoten.Text.Trim();       
-                string sdt = txtSdt.Text.Trim(); 
+                string idKH = txtID.Text.Trim();
+                string hoTen = txtHoten.Text.Trim();
+                string sdt = txtSdt.Text.Trim();
                 string diaChi = txtDiachi.Text.Trim();
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    MySqlCommand command = new MySqlCommand("spThemKhachHang", conn);
+                    SqlCommand command = new SqlCommand("spThemKhachHang", conn);
                     command.CommandType = CommandType.StoredProcedure;
 
                     command.Parameters.AddWithValue("@p_id_khach_hang", idKH);
@@ -49,14 +53,17 @@ namespace Quanlilaptop
                 }
 
                 MessageBox.Show("Thêm khách hàng thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                formKH.napdgvkhachhang(); 
+                formKH.napdgvkhachhang();
             }
-            catch (MySqlException ex)
+            catch (SqlException ex)
             {
-                MessageBox.Show("Lỗi khi thêm khách hàng: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi SQL khi thêm khách hàng: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             this.Close();
-
         }
     }
 }

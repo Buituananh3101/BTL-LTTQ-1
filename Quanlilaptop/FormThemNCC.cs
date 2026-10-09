@@ -1,13 +1,17 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Data;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Sử dụng thư viện SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormThemNCC : Form
     {
         private FormNhaCungCap formNCC;
+
+        // Khai báo chuỗi kết nối SQL Server
+        private string connStr = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormThemNCC(FormNhaCungCap form)
         {
             InitializeComponent();
@@ -28,10 +32,10 @@ namespace Quanlilaptop
                 string sdt = txtSdtNCC.Text.Trim();
                 string dia_chi = txtdia_chiNCC.Text.Trim();
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connStr))
                 {
                     conn.Open();
-                    MySqlCommand command = new MySqlCommand("spThemNCC", conn);
+                    SqlCommand command = new SqlCommand("spThemNCC", conn);
                     command.CommandType = CommandType.StoredProcedure;
 
                     command.Parameters.AddWithValue("@p_ma_nha_cung_cap", maNCC);
@@ -43,11 +47,18 @@ namespace Quanlilaptop
                 }
 
                 MessageBox.Show("Thêm nhà cung cấp thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                formNCC.napdgvNhaCungCap();
+                if (formNCC != null)
+                {
+                    formNCC.napdgvNhaCungCap();
+                }
             }
-            catch (MySqlException ex)
+            catch (SqlException ex)
             {
-                MessageBox.Show("Lỗi khi thêm nhà cung cấp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Lỗi SQL khi thêm nhà cung cấp: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             this.Close();
         }

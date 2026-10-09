@@ -1,7 +1,7 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using Microsoft.Data.SqlClient; // Sử dụng thư viện SQL Server
 
 namespace Quanlilaptop
 {
@@ -17,6 +17,10 @@ namespace Quanlilaptop
         public const int HTCAPTION = 0x2;
 
         private FormSanPham formSanPham;
+
+        // Khai báo chuỗi kết nối SQL Server chung
+        private string connStr = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormThongTinSP(FormSanPham form)
         {
             InitializeComponent();
@@ -37,7 +41,7 @@ namespace Quanlilaptop
             string ngayTao = dtpNKT.Value.ToString("yyyy-MM-dd");
             string donViTinh = txtDonvitinh.Text.Trim();
             string chiTiet = txtThongtin.Text.Trim();
-            string baohanhch = txtBaohanhCH.Text.Trim(); 
+            string baohanhch = txtBaohanhCH.Text.Trim();
 
             if (string.IsNullOrEmpty(id) || string.IsNullOrEmpty(tenSP) || string.IsNullOrEmpty(loai) || string.IsNullOrEmpty(donViTinh) || string.IsNullOrEmpty(baohanhch))
             {
@@ -47,16 +51,16 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connStr))
                 {
                     conn.Open();
                     string insertQuery = @"
-                INSERT INTO sanpham 
-                (id, ten_sanpham, loai, co_the_ban, ton_kho, ngay_khoi_tao, donvitinh, chitietsanpham, don_gia,baohanhcuahang)
-                VALUES 
-                (@id, @tenSP, @loai, 0, 0, @ngayTao, @donViTinh, @chiTiet, 0,@baohanhch)";
+                    INSERT INTO sanpham 
+                    (id, ten_sanpham, loai, co_the_ban, ton_kho, ngay_khoi_tao, donvitinh, chitietsanpham, don_gia, baohanhcuahang)
+                    VALUES 
+                    (@id, @tenSP, @loai, 0, 0, @ngayTao, @donViTinh, @chiTiet, 0, @baohanhch)";
 
-                    using (MySqlCommand cmd = new MySqlCommand(insertQuery, conn))
+                    using (SqlCommand cmd = new SqlCommand(insertQuery, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.Parameters.AddWithValue("@tenSP", tenSP);
@@ -65,21 +69,26 @@ namespace Quanlilaptop
                         cmd.Parameters.AddWithValue("@donViTinh", donViTinh);
                         cmd.Parameters.AddWithValue("@chiTiet", chiTiet);
                         cmd.Parameters.AddWithValue("@baohanhch", baohanhch);
+
                         int result = cmd.ExecuteNonQuery();
 
                         if (result > 0)
                         {
                             MessageBox.Show("Thêm sản phẩm thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                            this.Close(); 
+
+                            if (formSanPham != null)
+                            {
+                                formSanPham.napdgvsanpham();
+                            }
+
+                            this.Close();
                         }
                         else
                         {
                             MessageBox.Show("Không thể thêm sản phẩm.", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
-
                 }
-                formSanPham.napdgvsanpham();
             }
             catch (Exception ex)
             {
@@ -98,10 +107,9 @@ namespace Quanlilaptop
 
         private void txtBaohanhCH_KeyPress(object sender, KeyPressEventArgs e)
         {
-            
             if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
             {
-                e.Handled = true; 
+                e.Handled = true;
             }
         }
     }

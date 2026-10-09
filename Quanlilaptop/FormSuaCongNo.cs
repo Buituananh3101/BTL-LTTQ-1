@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,29 +7,35 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaCongNo : Form
     {
         private FormCongNo formCN;
+
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaCongNo(FormCongNo form)
         {
             InitializeComponent();
             LoadmacongnoToComboBox();
             formCN = form;
         }
+
         private void LoadmacongnoToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    string query = "SELECT ma_cong_no FROM congnonhacungcap";
+                    string query = "SELECT ma_cong_no FROM congnonhacungcap"; //[cite: 1]
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMacongno.Items.Clear();
 
@@ -57,21 +62,20 @@ namespace Quanlilaptop
             if (cbbMacongno.SelectedItem == null) return;
 
             string maCongNo = cbbMacongno.SelectedItem.ToString();
-            string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
 
             string query = @"SELECT ma_phieu_nhap, ngay_phat_sinh, trang_thai, ghi_chu
-                     FROM congnonhacungcap
-                     WHERE ma_cong_no = @maCongNo";
+                             FROM congnonhacungcap
+                             WHERE ma_cong_no = @maCongNo"; //[cite: 1]
 
-            using (MySqlConnection conn = new MySqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 try
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@maCongNo", maCongNo);
 
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
@@ -108,7 +112,6 @@ namespace Quanlilaptop
                 return;
             }
 
-
             string maPhieuNhap = txtMaphieunhap.Text.Trim();
             DateTime ngayPhatSinh = dtpCN.Value;
             string trangThai = txtTrangthai.Text.Trim();
@@ -120,24 +123,22 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
 
                     string updateQuery = @"
-                UPDATE congnonhacungcap
-                SET 
-                    ma_phieu_nhap = @maPhieuNhap,
-                    ngay_phat_sinh = @ngayPhatSinh,
-                    trang_thai = @trangThai,
-                    ghi_chu = @ghiChu
-                WHERE ma_cong_no = @maCongNo";
+                        UPDATE congnonhacungcap
+                        SET 
+                            ma_phieu_nhap = @maPhieuNhap,
+                            ngay_phat_sinh = @ngayPhatSinh,
+                            trang_thai = @trangThai,
+                            ghi_chu = @ghiChu
+                        WHERE ma_cong_no = @maCongNo"; //[cite: 1]
 
-                    MySqlCommand cmdUpdate = new MySqlCommand(updateQuery, conn);
+                    SqlCommand cmdUpdate = new SqlCommand(updateQuery, conn);
                     cmdUpdate.Parameters.AddWithValue("@maCongNo", maCongNo);
                     cmdUpdate.Parameters.AddWithValue("@maPhieuNhap", maPhieuNhap);
                     cmdUpdate.Parameters.AddWithValue("@ngayPhatSinh", ngayPhatSinh);
@@ -162,6 +163,5 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi cập nhật công nợ: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
-        
     }
 }

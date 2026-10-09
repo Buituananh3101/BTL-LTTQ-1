@@ -1,35 +1,38 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
-
 
 namespace Quanlilaptop
 {
     public partial class FormAccount : Form
     {
+        // Chuỗi kết nối SQL Server chung
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormAccount()
         {
             InitializeComponent();
             napdgvtaikhoan();
         }
+
         public void napdgvtaikhoan()
         {
             string sql = "SELECT userName AS 'Tên Đăng Nhập', password AS 'Mật Khẩu', email AS 'Email', chuc_vu AS 'Chức Vụ' FROM account;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvAccount.DataSource = table;
             }
         }
-        private static MySqlConnection connection = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=");
+
         private void btnThem_Click(object sender, EventArgs e)
         {
             ThemTaiKhoan form = new ThemTaiKhoan(this);
@@ -52,13 +55,13 @@ namespace Quanlilaptop
 
                 if (result == DialogResult.Yes)
                 {
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         try
                         {
                             conn.Open();
                             string sql = "DELETE FROM account WHERE userName = @userName";
-                            MySqlCommand command = new MySqlCommand(sql, conn);
+                            SqlCommand command = new SqlCommand(sql, conn);
                             command.Parameters.AddWithValue("@userName", userName);
 
                             int rowsAffected = command.ExecuteNonQuery();
@@ -90,7 +93,8 @@ namespace Quanlilaptop
         {
             try
             {
-                string sql = "SELECT userName AS 'username', password AS 'password', email AS 'email', chuc_vu AS 'role' FROM account WHERE userName LIKE CONCAT('%', @userName, '%')";
+                // Dùng toán tử cộng chuỗi '+' của SQL Server cho phần tìm kiếm LIKE
+                string sql = "SELECT userName AS 'username', password AS 'password', email AS 'email', chuc_vu AS 'role' FROM account WHERE userName LIKE '%' + @userName + '%'";
 
                 Dictionary<string, object> parameters = new Dictionary<string, object>();
                 parameters.Add("@userName", txtTimkiem.Text);
@@ -110,7 +114,7 @@ namespace Quanlilaptop
 
         private void FormAccount_Load(object sender, EventArgs e)
         {
-            
+
         }
 
         private void btnCapnhat_Click(object sender, EventArgs e)
@@ -136,16 +140,15 @@ namespace Quanlilaptop
 
                     using (DocX document = DocX.Create(filePath))
                     {
-
                         var title = document.InsertParagraph("DANH SÁCH TÀI KHOẢN")
                                             .Bold()
                                             .FontSize(16)
                                             .Alignment = Alignment.center;
 
-                        document.InsertParagraph("\n"); 
+                        document.InsertParagraph("\n");
 
                         var table = document.AddTable(dgvAccount.Rows.Count + 1, 4);
-                        table.Design = TableDesign.TableGrid; 
+                        table.Design = TableDesign.TableGrid;
 
                         table.Rows[0].Cells[0].Paragraphs[0].Append("Username").Bold();
                         table.Rows[0].Cells[1].Paragraphs[0].Append("Password").Bold();
@@ -166,7 +169,6 @@ namespace Quanlilaptop
                         }
 
                         document.InsertTable(table);
-
                         document.Save();
                     }
 
@@ -181,7 +183,7 @@ namespace Quanlilaptop
 
         private void dgvAccount_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-           
+
         }
     }
 }

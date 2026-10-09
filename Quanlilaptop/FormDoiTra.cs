@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -15,22 +15,25 @@ namespace Quanlilaptop
 {
     public partial class FormDoiTra : Form
     {
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormDoiTra()
         {
             InitializeComponent();
             napdgvdoitra();
         }
-    
-    public void napdgvdoitra()
 
+        public void napdgvdoitra()
         {
-            string sql = "SELECT ma_doi_tra AS 'Mã Đổi Trả',ma_phieu AS 'Mã Phiếu',ma_may AS 'Mã Máy',ma_kho AS 'Mã Kho'," +
-                "so_luong AS 'Số Lượng đổi trả',ngay_doi_tra AS 'Ngày Đổi Trả',ly_do AS 'Lý Do', trang_thai AS 'Trạng Thái' FROM doitra";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            string sql = "SELECT ma_doi_tra AS 'Mã Đổi Trả', ma_phieu AS 'Mã Phiếu', ma_may AS 'Mã Máy', ma_kho AS 'Mã Kho', " +
+                "so_luong AS 'Số Lượng đổi trả', ngay_doi_tra AS 'Ngày Đổi Trả', ly_do AS 'Lý Do', trang_thai AS 'Trạng Thái' FROM doitra";
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvDoitra.DataSource = table;
@@ -45,31 +48,31 @@ namespace Quanlilaptop
                 MessageBox.Show("Vui lòng nhập từ khóa tìm kiếm.", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
+
             string query = @"
-                                SELECT 
-                                    ma_doi_tra AS 'Mã Đổi Trả', 
-                                    ma_phieu AS 'Mã Phiếu', 
-                                    ma_may AS 'Mã Máy', 
-                                    ma_kho AS 'Mã Kho', 
-                                    so_luong AS 'Số Lượng Đổi Trả', 
-                                    ngay_doi_tra AS 'Ngày Đổi Trả', 
-                                    ly_do AS 'Lý Do', 
-                                    trang_thai AS 'Trạng Thái Đổi Trả'
-                                FROM doitra
-                                WHERE 
-                                    ma_phieu LIKE @keyword OR
-                                    ma_may LIKE @keyword OR
-                                    ma_kho LIKE @keyword OR
-                                    ly_do LIKE @keyword OR
-                                    trang_thai LIKE @keyword;";
+                SELECT 
+                    ma_doi_tra AS 'Mã Đổi Trả', 
+                    ma_phieu AS 'Mã Phiếu', 
+                    ma_may AS 'Mã Máy', 
+                    ma_kho AS 'Mã Kho', 
+                    so_luong AS 'Số Lượng Đổi Trả', 
+                    ngay_doi_tra AS 'Ngày Đổi Trả', 
+                    ly_do AS 'Lý Do', 
+                    trang_thai AS 'Trạng Thái Đổi Trả'
+                FROM doitra
+                WHERE 
+                    ma_phieu LIKE @keyword OR
+                    ma_may LIKE @keyword OR
+                    ma_kho LIKE @keyword OR
+                    ly_do LIKE @keyword OR
+                    trang_thai LIKE @keyword;";
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(query, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
                     adapter.SelectCommand.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
                     DataTable dt = new DataTable();
                     adapter.Fill(dt);
@@ -89,24 +92,23 @@ namespace Quanlilaptop
                 string maDoiTra = dgvDoitra.SelectedRows[0].Cells["Mã Đổi Trả"].Value.ToString();
 
                 DialogResult result = MessageBox.Show($"Bạn có chắc chắn muốn xóa phiếu đổi trả có mã {maDoiTra}?",
-                                                      "Xác nhận xóa",
-                                                      MessageBoxButtons.YesNo,
-                                                      MessageBoxIcon.Warning);
+                                                    "Xác nhận xóa",
+                                                    MessageBoxButtons.YesNo,
+                                                    MessageBoxIcon.Warning);
 
                 if (result == DialogResult.Yes)
                 {
                     try
                     {
-                        string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
                         string query = "DELETE FROM doitra WHERE ma_doi_tra = @maDoiTra";
 
-                        using (MySqlConnection conn = new MySqlConnection(connectionString))
+                        using (SqlConnection conn = new SqlConnection(connectionString))
                         {
                             conn.Open();
-                            MySqlCommand cmd = new MySqlCommand(query, conn);
+                            SqlCommand cmd = new SqlCommand(query, conn);
                             cmd.Parameters.AddWithValue("@maDoiTra", maDoiTra);
 
-                            int rowsAffected = cmd.ExecuteNonQuery(); 
+                            int rowsAffected = cmd.ExecuteNonQuery();
 
                             if (rowsAffected > 0)
                             {
@@ -144,7 +146,7 @@ namespace Quanlilaptop
             {
                 Filter = "Word Document (*.docx)|*.docx",
                 Title = "Chọn nơi lưu phiếu đổi trả",
-                FileName = $"PhieuDoiTra_{maDoiTra}.docx" 
+                FileName = $"PhieuDoiTra_{maDoiTra}.docx"
             };
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
@@ -160,27 +162,27 @@ namespace Quanlilaptop
                 string sqlPhieu = "SELECT * FROM doitra WHERE ma_doi_tra = @maDoiTra";
 
                 string sqlChiTiet = @"
-            SELECT 
-                ctpx.maMay, sp.ten_sanpham, ctpx.maKho, doitra.so_luong, phieu.thoi_gian_tao AS thoi_gian_xuat,
-                kh.ho_ten, kh.Sdt, kh.dia_chi
-            FROM chitietphieuxuat ctpx
-            JOIN sanpham sp ON ctpx.maMay = sp.id
-            JOIN doitra ON doitra.ma_phieu = ctpx.maPhieu
-            JOIN phieuxuat phieu ON ctpx.maPhieu = phieu.maPhieu
-            JOIN khachhang kh ON phieu.id_khach_hang = kh.id_khach_hang
-            WHERE ctpx.maPhieu = @maPhieu";
+                    SELECT 
+                        ctpx.maMay, sp.ten_sanpham, ctpx.maKho, doitra.so_luong, phieu.thoi_gian_tao AS thoi_gian_xuat,
+                        kh.ho_ten, kh.Sdt, kh.dia_chi
+                    FROM chitietphieuxuat ctpx
+                    JOIN sanpham sp ON ctpx.maMay = sp.id
+                    JOIN doitra ON doitra.ma_phieu = ctpx.maPhieu
+                    JOIN phieuxuat phieu ON ctpx.maPhieu = phieu.maPhieu
+                    JOIN khachhang kh ON phieu.id_khach_hang = kh.id_khach_hang
+                    WHERE ctpx.maPhieu = @maPhieu";
 
                 DataTable tblPhieu = new DataTable();
                 DataTable tblChiTiet = new DataTable();
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
-                    using (MySqlCommand cmd = new MySqlCommand(sqlPhieu, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlPhieu, conn))
                     {
                         cmd.Parameters.AddWithValue("@maDoiTra", maDoiTra);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblPhieu);
                     }
 
@@ -192,10 +194,10 @@ namespace Quanlilaptop
 
                     string maPhieu = tblPhieu.Rows[0]["ma_phieu"].ToString();
 
-                    using (MySqlCommand cmd = new MySqlCommand(sqlChiTiet, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlChiTiet, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblChiTiet);
                     }
                 }
@@ -282,13 +284,12 @@ namespace Quanlilaptop
 
         private void panel1_Paint(object sender, PaintEventArgs e)
         {
-
+            // none
         }
 
         private void dgvDoitra_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-
+            // none
         }
     }
 }
-

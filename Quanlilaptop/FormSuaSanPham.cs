@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,29 +7,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaSanPham : Form
     {
         private FormSanPham formSP;
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaSanPham(FormSanPham form)
         {
             InitializeComponent();
             LoadidsanphamToComboBox();
             formSP = form;
         }
+
         private void LoadidsanphamToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT id FROM sanpham";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbIDSP.Items.Clear();
 
@@ -69,7 +72,7 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string sql = @"UPDATE sanpham 
@@ -80,7 +83,7 @@ namespace Quanlilaptop
                                baohanhcuahang = @baohanh
                            WHERE id = @id";
 
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
                     cmd.Parameters.AddWithValue("@ten", tenSP);
                     cmd.Parameters.AddWithValue("@loai", loai);
                     cmd.Parameters.AddWithValue("@donvi", donViTinh);
@@ -94,7 +97,7 @@ namespace Quanlilaptop
                     {
                         MessageBox.Show("Cập nhật sản phẩm thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         formSP.napdgvsanpham();
-                        this.Close(); 
+                        this.Close();
                     }
                     else
                     {
@@ -110,15 +113,16 @@ namespace Quanlilaptop
 
         private void cbbIDSP_SelectedIndexChanged_1(object sender, EventArgs e)
         {
+            if (cbbIDSP.SelectedItem == null) return;
             string idSP = cbbIDSP.SelectedItem.ToString();
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
                 string sql = "SELECT ten_sanpham, loai, donvitinh, chitietsanpham, baohanhcuahang FROM sanpham WHERE id = @id";
-                MySqlCommand cmd = new MySqlCommand(sql, conn);
+                SqlCommand cmd = new SqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@id", idSP);
-                MySqlDataReader reader = cmd.ExecuteReader();
+                SqlDataReader reader = cmd.ExecuteReader();
 
                 if (reader.Read())
                 {

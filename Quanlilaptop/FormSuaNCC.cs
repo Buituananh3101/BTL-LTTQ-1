@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,29 +7,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaNCC : Form
     {
         private FormNhaCungCap formNCC;
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaNCC(FormNhaCungCap form)
         {
             InitializeComponent();
             LoadmanhacungcapToComboBox();
             formNCC = form;
         }
+
         private void LoadmanhacungcapToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT ma_nha_cung_cap FROM nhacungcap";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbNCC.Items.Clear();
 
@@ -46,6 +49,7 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void btnThoat_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -53,16 +57,16 @@ namespace Quanlilaptop
 
         private void cbbNCC_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string maNCC = cbbNCC.SelectedItem?.ToString(); 
+            string maNCC = cbbNCC.SelectedItem?.ToString();
             if (string.IsNullOrEmpty(maNCC)) return;
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
                 string sql = "SELECT ten_nha_cung_cap, Sdt, dia_chi FROM nhacungcap WHERE ma_nha_cung_cap = @maNCC";
-                MySqlCommand command = new MySqlCommand(sql, conn);
+                SqlCommand command = new SqlCommand(sql, conn);
                 command.Parameters.AddWithValue("@maNCC", maNCC);
-                MySqlDataReader reader = command.ExecuteReader();
+                SqlDataReader reader = command.ExecuteReader();
 
                 if (reader.Read())
                 {
@@ -76,7 +80,7 @@ namespace Quanlilaptop
 
         private void btnThem_Click(object sender, EventArgs e)
         {
-            string maNCC = cbbNCC.Text.Trim(); 
+            string maNCC = cbbNCC.Text.Trim();
             string tenNCC = txtTenNCC.Text.Trim();
             string sdt = txtSdtNCC.Text.Trim();
             string diaChi = txtdia_chiNCC.Text.Trim();
@@ -89,7 +93,7 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string sql = @"UPDATE nhacungcap 
@@ -98,7 +102,7 @@ namespace Quanlilaptop
                                dia_chi = @diaChi
                            WHERE ma_nha_cung_cap = @maNCC";
 
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@tenNCC", tenNCC);
                     command.Parameters.AddWithValue("@sdt", sdt);
                     command.Parameters.AddWithValue("@diaChi", diaChi);

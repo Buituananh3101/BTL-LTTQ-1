@@ -1,14 +1,16 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaDoiTra : Form
     {
         private FormDoiTra formDT;
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
 
         public FormSuaDoiTra(FormDoiTra form)
         {
@@ -27,13 +29,13 @@ namespace Quanlilaptop
 
         private void LoadmaphieudoitraToComboBox()
         {
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
                 string query = "SELECT ma_doi_tra FROM doitra";
 
-                using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     cbbMadoitra.Items.Clear();
                     while (reader.Read())
@@ -49,17 +51,15 @@ namespace Quanlilaptop
             if (cbbMadoitra.SelectedItem == null) return;
 
             string maDoiTra = cbbMadoitra.SelectedItem.ToString();
-            string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
             string query = "SELECT * FROM doitra WHERE ma_doi_tra = @maDoiTra";
 
-            using (MySqlConnection conn = new MySqlConnection(connStr))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
+                SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@maDoiTra", maDoiTra);
 
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     if (reader.Read())
                     {
@@ -89,12 +89,11 @@ namespace Quanlilaptop
                 return;
             }
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
 
-                
-                var cmd = new MySqlCommand("SELECT trang_thai FROM doitra WHERE ma_doi_tra = @maDoiTra", conn);
+                var cmd = new SqlCommand("SELECT trang_thai FROM doitra WHERE ma_doi_tra = @maDoiTra", conn);
                 cmd.Parameters.AddWithValue("@maDoiTra", maDoiTra);
                 string trangThaiHienTai = cmd.ExecuteScalar()?.ToString();
 
@@ -104,9 +103,8 @@ namespace Quanlilaptop
                     return;
                 }
 
-                
                 string getSLXuat = "SELECT so_luong FROM chitietphieuxuat WHERE maPhieu = @maPhieu AND maMay = @maMay";
-                var cmdXuat = new MySqlCommand(getSLXuat, conn);
+                var cmdXuat = new SqlCommand(getSLXuat, conn);
                 cmdXuat.Parameters.AddWithValue("@maPhieu", maPhieu);
                 cmdXuat.Parameters.AddWithValue("@maMay", maMay);
                 object objSoLuongXuat = cmdXuat.ExecuteScalar();
@@ -119,39 +117,37 @@ namespace Quanlilaptop
 
                 int soLuongXuat = Convert.ToInt32(objSoLuongXuat);
 
-                
                 string queryDaDoi = @"
-            SELECT COALESCE(SUM(so_luong), 0)
-            FROM doitra
-            WHERE ma_phieu = @maPhieu AND ma_may = @maMay 
-              AND trang_thai IN ('Đã hoàn tiền', 'Đã đổi trả xong')
-              AND ma_doi_tra != @maDoiTra";
+                SELECT COALESCE(SUM(so_luong), 0)
+                FROM doitra
+                WHERE ma_phieu = @maPhieu AND ma_may = @maMay 
+                  AND trang_thai IN ('Đã hoàn tiền', 'Đã đổi trả xong')
+                  AND ma_doi_tra != @maDoiTra";
 
-                var cmdDaDoi = new MySqlCommand(queryDaDoi, conn);
+                var cmdDaDoi = new SqlCommand(queryDaDoi, conn);
                 cmdDaDoi.Parameters.AddWithValue("@maPhieu", maPhieu);
                 cmdDaDoi.Parameters.AddWithValue("@maMay", maMay);
                 cmdDaDoi.Parameters.AddWithValue("@maDoiTra", maDoiTra);
 
                 int soLuongDaDoi = Convert.ToInt32(cmdDaDoi.ExecuteScalar());
 
-                
                 if (soLuong + soLuongDaDoi > soLuongXuat)
                 {
                     MessageBox.Show($"Tổng số lượng đổi trả ({soLuongDaDoi + soLuong}) vượt quá số lượng xuất ({soLuongXuat})!", "Cảnh báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
-                
                 if (trangThaiMoi == "Đã gửi nhà cung cấp")
                 {
+                    // Dùng TOP 1 thay cho LIMIT 1 trong SQL Server
                     string query = @"
-                SELECT pn.thoi_gian_tao, ctpn.baohanhnhacungcap
-                FROM chitietphieuxuat ctx
-                JOIN chitietphieunhap ctpn ON ctx.maPhieuNhap = ctpn.maPhieu AND ctx.maMay = ctpn.maMay
-                JOIN phieunhap pn ON pn.maPhieu = ctpn.maPhieu
-                WHERE ctx.maPhieu = @maPhieu AND ctx.maMay = @maMay LIMIT 1";
+                    SELECT TOP 1 pn.thoi_gian_tao, ctpn.baohanhnhacungcap
+                    FROM chitietphieuxuat ctx
+                    JOIN chitietphieunhap ctpn ON ctx.maPhieuNhap = ctpn.maPhieu AND ctx.maMay = ctpn.maMay
+                    JOIN phieunhap pn ON pn.maPhieu = ctpn.maPhieu
+                    WHERE ctx.maPhieu = @maPhieu AND ctx.maMay = @maMay";
 
-                    var cmdCheck = new MySqlCommand(query, conn);
+                    var cmdCheck = new SqlCommand(query, conn);
                     cmdCheck.Parameters.AddWithValue("@maPhieu", maPhieu);
                     cmdCheck.Parameters.AddWithValue("@maMay", maMay);
 
@@ -178,7 +174,7 @@ namespace Quanlilaptop
                 string updateQuery = @"UPDATE doitra SET ma_phieu = @maPhieu, ma_may = @maMay, so_luong = @soLuong,
                 ngay_doi_tra = @ngayDoiTra, ly_do = @lyDo, trang_thai = @trangThai WHERE ma_doi_tra = @maDoiTra";
 
-                var cmdUpdate = new MySqlCommand(updateQuery, conn);
+                var cmdUpdate = new SqlCommand(updateQuery, conn);
                 cmdUpdate.Parameters.AddWithValue("@maPhieu", maPhieu);
                 cmdUpdate.Parameters.AddWithValue("@maMay", maMay);
                 cmdUpdate.Parameters.AddWithValue("@soLuong", soLuong);
@@ -189,7 +185,7 @@ namespace Quanlilaptop
 
                 if (cmdUpdate.ExecuteNonQuery() > 0)
                 {
-                    if (trangThaiMoi == "Đã hoàn tiền" || trangThaiMoi=="Đã đổi trả xong")
+                    if (trangThaiMoi == "Đã hoàn tiền" || trangThaiMoi == "Đã đổi trả xong")
                     {
                         CapNhatTonKhoSauHoanTien(conn, maMay, soLuong);
                     }
@@ -204,32 +200,29 @@ namespace Quanlilaptop
             }
         }
 
-
-
-
-        private void CapNhatTonKhoSauHoanTien(MySqlConnection conn, string maMay, int soLuong)
+        private void CapNhatTonKhoSauHoanTien(SqlConnection conn, string maMay, int soLuong)
         {
             // Cập nhật tồn kho
-            var updateTonKho = new MySqlCommand("UPDATE sanpham SET ton_kho = ton_kho + @sl WHERE id = @maMay", conn);
+            var updateTonKho = new SqlCommand("UPDATE sanpham SET ton_kho = ton_kho + @sl WHERE id = @maMay", conn);
             updateTonKho.Parameters.AddWithValue("@sl", soLuong);
             updateTonKho.Parameters.AddWithValue("@maMay", maMay);
             updateTonKho.ExecuteNonQuery();
 
             // Cập nhật chi tiết tồn
-            var checkCT = new MySqlCommand("SELECT COUNT(*) FROM chitietsoluongsanpham WHERE ma_san_pham = @maMay", conn);
+            var checkCT = new SqlCommand("SELECT COUNT(*) FROM chitietsoluongsanpham WHERE ma_san_pham = @maMay", conn);
             checkCT.Parameters.AddWithValue("@maMay", maMay);
             bool exists = Convert.ToInt32(checkCT.ExecuteScalar()) > 0;
 
             if (exists)
             {
-                var update = new MySqlCommand("UPDATE chitietsoluongsanpham SET san_pham_chua_kiem_tra = san_pham_chua_kiem_tra + @sl WHERE ma_san_pham = @maMay", conn);
+                var update = new SqlCommand("UPDATE chitietsoluongsanpham SET san_pham_chua_kiem_tra = san_pham_chua_kiem_tra + @sl WHERE ma_san_pham = @maMay", conn);
                 update.Parameters.AddWithValue("@sl", soLuong);
                 update.Parameters.AddWithValue("@maMay", maMay);
                 update.ExecuteNonQuery();
             }
             else
             {
-                var insert = new MySqlCommand("INSERT INTO chitietsoluongsanpham(ma_san_pham, chua_kiem_tra, loi, ktv) VALUES (@maMay, @sl, 0, 0)", conn);
+                var insert = new SqlCommand("INSERT INTO chitietsoluongsanpham(ma_san_pham, san_pham_chua_kiem_tra, san_pham_loi, san_pham_ktv, maPhieu) VALUES (@maMay, @sl, 0, 0, '')", conn);
                 insert.Parameters.AddWithValue("@maMay", maMay);
                 insert.Parameters.AddWithValue("@sl", soLuong);
                 insert.ExecuteNonQuery();

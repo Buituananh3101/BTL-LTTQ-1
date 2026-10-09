@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Windows.Forms;
-using MySql.Data.MySqlClient;
 using System.Data;
+using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
+
 namespace Quanlilaptop
 {
     public partial class FormDangNhap : Form
@@ -11,7 +12,8 @@ namespace Quanlilaptop
             InitializeComponent();
         }
 
-        private static MySqlConnection connection = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=");
+        // Cập nhật chuỗi kết nối sang SQL Server
+        private static SqlConnection connection = new SqlConnection("Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;");
 
         private void label4_Click(object sender, EventArgs e)
         {
@@ -39,9 +41,12 @@ namespace Quanlilaptop
             try
             {
                 string query = "select * from account where userName = N'" + txtUsername.Text + "' and password = N'" + txtPassword.Text + "'";
-                MySqlDataAdapter sda = new MySqlDataAdapter(query, connection);
+
+                // Sử dụng SqlDataAdapter thay cho MySqlDataAdapter
+                SqlDataAdapter sda = new SqlDataAdapter(query, connection);
                 DataTable table = new DataTable();
                 sda.Fill(table);
+
                 if (table.Rows.Count > 0)
                 {
                     username = txtUsername.Text;
@@ -63,12 +68,15 @@ namespace Quanlilaptop
             {
                 MessageBox.Show("Lỗi: " + ex.Message, "Lỗi hệ thống", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-
             finally
             {
-                connection.Close();
+                if (connection.State == ConnectionState.Open)
+                {
+                    connection.Close();
+                }
             }
         }
+
         private void btnThoat_Click(object sender, EventArgs e)
         {
             DialogResult res;

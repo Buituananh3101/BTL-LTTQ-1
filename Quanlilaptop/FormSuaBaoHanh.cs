@@ -7,12 +7,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using MySql.Data.MySqlClient;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaBaoHanh : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaBaoHanh()
         {
             InitializeComponent();
@@ -31,21 +34,19 @@ namespace Quanlilaptop
         private void FormSuaBaoHanh_Load(object sender, EventArgs e)
         {
             string query = "SELECT ma_phieu_bao_hanh FROM chitietbaohanh";
-            using (MySqlConnection conn = new MySqlConnection("server=localhost;database=quanlimaytinh;uid=root;pwd=;"))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                MySqlDataReader reader = cmd.ExecuteReader();
+                SqlCommand cmd = new SqlCommand(query, conn);
+                SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
                     cbbMabaohanh.Items.Add(reader["ma_phieu_bao_hanh"].ToString());
                 }
             }
-
         }
-        
-        public event EventHandler BaoHanhUpdated;
 
+        public event EventHandler BaoHanhUpdated;
 
         private void btn__Click(object sender, EventArgs e)
         {
@@ -58,12 +59,12 @@ namespace Quanlilaptop
             string maPhieuBaoHanh = cbbMabaohanh.SelectedItem.ToString();
             string ketQua = cbb_Ketqua.SelectedItem.ToString();
 
-            using (MySqlConnection conn = new MySqlConnection("server=localhost;database=quanlimaytinh;uid=root;pwd=;"))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
 
                 string checkQuery = "SELECT ket_qua_bao_hanh FROM chitietbaohanh WHERE ma_phieu_bao_hanh = @maPhieu";
-                MySqlCommand checkCmd = new MySqlCommand(checkQuery, conn);
+                SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
                 checkCmd.Parameters.AddWithValue("@maPhieu", maPhieuBaoHanh);
                 object currentResult = checkCmd.ExecuteScalar();
 
@@ -77,9 +78,8 @@ namespace Quanlilaptop
                     }
                 }
 
-                
                 string query = "UPDATE chitietbaohanh SET ket_qua_bao_hanh = @ketQua WHERE ma_phieu_bao_hanh = @maPhieu";
-                MySqlCommand cmd = new MySqlCommand(query, conn);
+                SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@ketQua", ketQua);
                 cmd.Parameters.AddWithValue("@maPhieu", maPhieuBaoHanh);
                 int rows = cmd.ExecuteNonQuery();
@@ -87,7 +87,7 @@ namespace Quanlilaptop
                 if (rows > 0)
                 {
                     MessageBox.Show("Cập nhật thành công!", "Thông báo");
-                    BaoHanhUpdated?.Invoke(this, EventArgs.Empty); 
+                    BaoHanhUpdated?.Invoke(this, EventArgs.Empty);
                     this.Close();
                 }
                 else
@@ -96,8 +96,6 @@ namespace Quanlilaptop
                 }
             }
         }
-
-
 
         private void btnThoat_Click(object sender, EventArgs e)
         {

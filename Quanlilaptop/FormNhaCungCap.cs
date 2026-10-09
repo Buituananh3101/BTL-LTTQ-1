@@ -1,7 +1,13 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -9,22 +15,26 @@ namespace Quanlilaptop
 {
     public partial class FormNhaCungCap : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormNhaCungCap()
         {
             InitializeComponent();
             napdgvNhaCungCap();
         }
+
         public void napdgvNhaCungCap()
         {
             string sql = "SELECT ma_nha_cung_cap AS 'Mã Nhà Cung Cấp', ten_nha_cung_cap AS 'Tên Nhà Cung Cấp', Sdt AS 'Số Điện Thoại', dia_chi AS 'Địa Chỉ' FROM nhacungcap;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
-                dgvNhacungcap.DataSource = table; 
+                dgvNhacungcap.DataSource = table;
             }
         }
 
@@ -32,7 +42,7 @@ namespace Quanlilaptop
         {
             try
             {
-                string keyword = txtTimkiem.Text.Trim(); 
+                string keyword = txtTimkiem.Text.Trim();
 
                 string sql = @"SELECT ma_nha_cung_cap, ten_nha_cung_cap, Sdt, dia_chi 
                        FROM nhacungcap 
@@ -41,17 +51,17 @@ namespace Quanlilaptop
                           OR Sdt LIKE @keyword
                           OR dia_chi LIKE @keyword";
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
 
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                    SqlDataAdapter adapter = new SqlDataAdapter(command);
                     DataTable table = new DataTable();
                     adapter.Fill(table);
 
-                    dgvNhacungcap.DataSource = table; 
+                    dgvNhacungcap.DataSource = table;
                 }
             }
             catch (Exception ex)
@@ -76,12 +86,12 @@ namespace Quanlilaptop
                     string filePath = saveFileDialog.FileName;
 
                     DataTable tableNCC = new DataTable();
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         conn.Open();
                         string sql = "SELECT ma_nha_cung_cap, ten_nha_cung_cap, Sdt, dia_chi FROM nhacungcap";
-                        MySqlCommand command = new MySqlCommand(sql, conn);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                        SqlCommand command = new SqlCommand(sql, conn);
+                        SqlDataAdapter adapter = new SqlDataAdapter(command);
                         adapter.Fill(tableNCC);
                     }
 
@@ -138,7 +148,7 @@ namespace Quanlilaptop
 
         private void btnXoa_Click(object sender, EventArgs e)
         {
-            if (dgvNhacungcap.SelectedRows.Count > 0) 
+            if (dgvNhacungcap.SelectedRows.Count > 0)
             {
                 string maNCC = dgvNhacungcap.SelectedRows[0].Cells["Mã Nhà Cung Cấp"].Value.ToString();
 
@@ -149,13 +159,13 @@ namespace Quanlilaptop
 
                 if (result == DialogResult.Yes)
                 {
-                    using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         try
                         {
                             conn.Open();
                             string sql = "DELETE FROM NhaCungCap WHERE ma_nha_cung_cap = @maNCC";
-                            MySqlCommand command = new MySqlCommand(sql, conn);
+                            SqlCommand command = new SqlCommand(sql, conn);
                             command.Parameters.AddWithValue("@maNCC", maNCC);
 
                             int rowsAffected = command.ExecuteNonQuery();
@@ -190,4 +200,3 @@ namespace Quanlilaptop
         }
     }
 }
-
