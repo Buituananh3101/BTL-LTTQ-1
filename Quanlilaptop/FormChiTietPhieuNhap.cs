@@ -1,13 +1,15 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
-using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
+
 namespace Quanlilaptop
 {
     public partial class FormChiTietPhieuNhap : Form
     {
-
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
@@ -17,6 +19,8 @@ namespace Quanlilaptop
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HTCAPTION = 0x2;
 
+        // Khai báo chuỗi kết nối SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
 
         public FormChiTietPhieuNhap()
         {
@@ -34,7 +38,7 @@ namespace Quanlilaptop
 
         private void btnReturn_Click(object sender, EventArgs e)
         {
-            
+
         }
 
         private void btnThem_Click(object sender, EventArgs e)
@@ -64,13 +68,13 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    string query = @"INSERT INTO chitietphieunhap (maPhieu, maMay, maKho, so_luong, don_gia,baohanhnhacungcap)
-                             VALUES (@maPhieu, @maMay, @maKho, @so_luong, @don_gia,@baohanhnhacungcap)";
+                    string query = @"INSERT INTO chitietphieunhap (maPhieu, maMay, maKho, so_luong, don_gia, baohanhnhacungcap)
+                             VALUES (@maPhieu, @maMay, @maKho, @so_luong, @don_gia, @baohanhnhacungcap)";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                         cmd.Parameters.AddWithValue("@maMay", maMay);
@@ -90,7 +94,7 @@ namespace Quanlilaptop
                                 formPhieuNhap.napdgvphieunhap();
                             }
 
-                            this.Close(); 
+                            this.Close();
                         }
                         else
                         {
@@ -104,19 +108,20 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi thêm dữ liệu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadMaPhieuToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT maPhieu FROM phieunhap";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbMaphieu.Items.Clear(); 
+                        cbbMaphieu.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -130,19 +135,20 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadMamayToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT id FROM sanpham";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbMamay.Items.Clear(); 
+                        cbbMamay.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -156,19 +162,20 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadmakhoToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT maKho FROM kho";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbMakho.Items.Clear(); 
+                        cbbMakho.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -194,17 +201,15 @@ namespace Quanlilaptop
 
         private void txtBH_KeyPress(object sender, KeyPressEventArgs e)
         {
-            
             if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar))
             {
-                e.Handled = true; 
+                e.Handled = true;
             }
         }
 
         private void FormChiTietPhieuNhap_Load(object sender, EventArgs e)
         {
             txtBH.ImeMode = ImeMode.Disable;
-
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,12 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 
 namespace Quanlilaptop
 {
     public partial class FormSuaAccount : Form
     {
         private FormAccount formAcc;
+
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormSuaAccount(FormAccount form)
         {
             InitializeComponent();
@@ -25,17 +29,18 @@ namespace Quanlilaptop
         {
             this.Close();
         }
+
         private void LoadtaikhoanToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    string query = "SELECT userName FROM account";
+                    string query = "SELECT userName FROM account"; //[cite: 1]
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbAcc.Items.Clear();
 
@@ -57,14 +62,14 @@ namespace Quanlilaptop
             string userName = cbbAcc.SelectedItem?.ToString();
             if (string.IsNullOrEmpty(userName)) return;
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                string sql = "SELECT password, email, chuc_vu FROM account WHERE userName = @userName";
-                MySqlCommand command = new MySqlCommand(sql, conn);
+                string sql = "SELECT password, email, chuc_vu FROM account WHERE userName = @userName"; //[cite: 1]
+                SqlCommand command = new SqlCommand(sql, conn);
                 command.Parameters.AddWithValue("@userName", userName);
 
-                using (MySqlDataReader reader = command.ExecuteReader())
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
                     if (reader.Read())
                     {
@@ -91,16 +96,16 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string sql = @"UPDATE account 
-                           SET password = @password,
-                               email = @email,
-                               chuc_vu = @chucVu
-                           WHERE userName = @userName";
+                                   SET password = @password,
+                                       email = @email,
+                                       chuc_vu = @chucVu
+                                   WHERE userName = @userName"; //[cite: 1]
 
-                    MySqlCommand command = new MySqlCommand(sql, conn);
+                    SqlCommand command = new SqlCommand(sql, conn);
                     command.Parameters.AddWithValue("@password", password);
                     command.Parameters.AddWithValue("@email", email);
                     command.Parameters.AddWithValue("@chucVu", chucVu);

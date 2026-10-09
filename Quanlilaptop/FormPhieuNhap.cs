@@ -1,7 +1,7 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Data;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -9,22 +9,25 @@ namespace Quanlilaptop
 {
     public partial class FormPhieuNhap : Form
     {
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormPhieuNhap()
         {
             InitializeComponent();
             napdgvphieunhap();
             dgvPhieunhap.CellEndEdit += dgvPhieunhap_CellEndEdit;
         }
+
         public void napdgvphieunhap()
         {
             string sql = @"SELECT pn.maPhieu AS 'Mã Phiếu', pn.thoi_gian_tao AS 'Thời Gian Tạo', pn.nguoi_tao AS 'Người Tạo', pn.ma_nha_cung_cap AS 'Mã Nhà Cung Cấp', pn.tong_tien AS 'Tổng Tiền phiếu nhập', sp.id AS 'Mã Máy', ctpn.maKho AS 'Mã Kho', ctpn.so_luong AS 'Số Lượng', ctpn.don_gia AS 'Đơn Giá', ctpn.baohanhnhacungcap AS 'Bảo hành nhà cung cấp' FROM phieunhap pn JOIN chitietphieunhap ctpn ON pn.maPhieu = ctpn.maPhieu JOIN sanpham sp ON sp.id = ctpn.maMay";
 
-
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvPhieunhap.DataSource = table;
@@ -38,7 +41,6 @@ namespace Quanlilaptop
                 }
             }
             dgvPhieunhap.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-
         }
 
         private void btnXuatfile_Click(object sender, EventArgs e)
@@ -63,6 +65,7 @@ namespace Quanlilaptop
                 XuatPhieuNhapWord(maPhieu, saveFileDialog.FileName);
             }
         }
+
         private void XuatPhieuNhapWord(string maPhieu, string filePath)
         {
             try
@@ -76,21 +79,21 @@ namespace Quanlilaptop
                 DataTable tblPhieu = new DataTable();
                 DataTable tblChiTiet = new DataTable();
 
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
 
-                    using (MySqlCommand cmd = new MySqlCommand(sqlPhieu, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlPhieu, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblPhieu);
                     }
 
-                    using (MySqlCommand cmd = new MySqlCommand(sqlChiTiet, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlChiTiet, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblChiTiet);
                     }
                 }
@@ -145,7 +148,6 @@ namespace Quanlilaptop
                         .Italic()
                         .Alignment = Alignment.right;
 
-
                     doc.Save();
                 }
 
@@ -190,13 +192,13 @@ namespace Quanlilaptop
                                    OR ctpn.so_luong LIKE @kw
                                    OR ctpn.don_gia LIKE @kw";
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
+                SqlCommand command = new SqlCommand(sql, conn);
                 command.Parameters.AddWithValue("@kw", $"%{keyword}%");
 
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
 
@@ -212,17 +214,14 @@ namespace Quanlilaptop
                 string maPhieu = dgvPhieunhap.CurrentRow.Cells["Mã Phiếu"].Value.ToString();
                 string maMay = dgvPhieunhap.CurrentRow.Cells["Mã Máy"].Value.ToString();
 
-                string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     try
                     {
                         conn.Open();
 
-                        // Kiểm tra ràng buộc với bảng phieu_bao_hanh trước
-                        string checkConstraintSql = "SELECT COUNT(*) FROM phieubaohanh pbh  join chitietbaohanh ctbh " +
-                            " on pbh.ma_phieu_bao_hanh=ctbh.ma_phieu_bao_hanh  WHERE pbh.ma_phieu_nhap = @maPhieu AND ctbh.ma_san_pham = @maMay";
-                        MySqlCommand checkCmd = new MySqlCommand(checkConstraintSql, conn);
+                        string checkConstraintSql = "SELECT COUNT(*) FROM phieubaohanh pbh join chitietbaohanh ctbh on pbh.ma_phieu_bao_hanh=ctbh.ma_phieu_bao_hanh WHERE pbh.ma_phieu_nhap = @maPhieu AND ctbh.ma_san_pham = @maMay";
+                        SqlCommand checkCmd = new SqlCommand(checkConstraintSql, conn);
                         checkCmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                         checkCmd.Parameters.AddWithValue("@maMay", maMay);
 
@@ -231,11 +230,10 @@ namespace Quanlilaptop
                         if (constraintCount > 0)
                         {
                             MessageBox.Show("Không thể xóa vì sản phẩm này đã có trong phiếu bảo hành!",
-                                          "Lỗi ràng buộc", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                            "Lỗi ràng buộc", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
 
-                        // Nếu không có ràng buộc thì tiếp tục xóa
                         DialogResult result = MessageBox.Show(
                             $"Bạn có chắc muốn xoá sản phẩm {maMay} trong phiếu {maPhieu}?",
                             "Xác nhận xoá", MessageBoxButtons.YesNo, MessageBoxIcon.Warning
@@ -244,7 +242,7 @@ namespace Quanlilaptop
                         if (result == DialogResult.Yes)
                         {
                             string query = "DELETE FROM chitietphieunhap WHERE maPhieu = @maPhieu AND maMay = @maMay";
-                            MySqlCommand cmd = new MySqlCommand(query, conn);
+                            SqlCommand cmd = new SqlCommand(query, conn);
                             cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                             cmd.Parameters.AddWithValue("@maMay", maMay);
 
@@ -253,16 +251,15 @@ namespace Quanlilaptop
                             {
                                 MessageBox.Show("Xoá thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
 
-                                // Kiểm tra xem phiếu nhập còn chi tiết nào không
                                 string checkRemainingSql = "SELECT COUNT(*) FROM chitietphieunhap WHERE maPhieu = @maPhieu";
-                                MySqlCommand remainingCmd = new MySqlCommand(checkRemainingSql, conn);
+                                SqlCommand remainingCmd = new SqlCommand(checkRemainingSql, conn);
                                 remainingCmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                                 int remaining = Convert.ToInt32(remainingCmd.ExecuteScalar());
 
                                 if (remaining == 0)
                                 {
                                     string sqlDeletePhieu = "DELETE FROM phieunhap WHERE maPhieu = @maPhieu";
-                                    using (MySqlCommand cmdDel = new MySqlCommand(sqlDeletePhieu, conn))
+                                    using (SqlCommand cmdDel = new SqlCommand(sqlDeletePhieu, conn))
                                     {
                                         cmdDel.Parameters.AddWithValue("@maPhieu", maPhieu);
                                         cmdDel.ExecuteNonQuery();
@@ -304,14 +301,14 @@ namespace Quanlilaptop
                        so_luong = @soLuong,
                        don_gia = @donGia,
                        baohanhnhacungcap = @baoHanh
-                   WHERE maPhieu = @maPhieu AND maMay = @maMay";
+                    WHERE maPhieu = @maPhieu AND maMay = @maMay";
 
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 try
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
                     cmd.Parameters.AddWithValue("@maKho", maKho);
                     cmd.Parameters.AddWithValue("@soLuong", soLuong);
                     cmd.Parameters.AddWithValue("@donGia", donGia);

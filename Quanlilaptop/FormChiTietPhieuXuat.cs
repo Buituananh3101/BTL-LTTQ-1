@@ -1,10 +1,10 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Linq;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Data;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
+
 namespace Quanlilaptop
 {
     public partial class FormChiTietPhieuXuat : Form
@@ -17,7 +17,10 @@ namespace Quanlilaptop
 
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HTCAPTION = 0x2;
-        private string connectionString = "server=localhost;user id=root;password=;database=quanlimaytinh;";
+
+        // Chuỗi kết nối SQL Server
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormChiTietPhieuXuat()
         {
             InitializeComponent();
@@ -59,21 +62,21 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
-                    // Truy vấn tính số lượng khả dụng để xuất
+                    // Sử dụng ISNULL thay cho IFNULL trong SQL Server
                     string query = @"
-                SELECT 
-                    sp.ton_kho - IFNULL(ct.san_pham_chua_kiem_tra, 0) 
-                               - IFNULL(ct.san_pham_loi, 0) 
-                               - IFNULL(ct.san_pham_ktv, 0) AS soluong_conlai
-                FROM sanpham sp
-                LEFT JOIN chitietsoluongsanpham ct ON sp.id = ct.ma_san_pham AND ct.maPhieu = @maPhieuNhap
-                WHERE sp.id = @maMay";
+                    SELECT 
+                        sp.ton_kho - ISNULL(ct.san_pham_chua_kiem_tra, 0) 
+                                   - ISNULL(ct.san_pham_loi, 0) 
+                                   - ISNULL(ct.san_pham_ktv, 0) AS soluong_conlai
+                    FROM sanpham sp
+                    LEFT JOIN chitietsoluongsanpham ct ON sp.id = ct.ma_san_pham AND ct.maPhieu = @maPhieuNhap
+                    WHERE sp.id = @maMay";
 
-                    using (MySqlCommand checkCmd = new MySqlCommand(query, conn))
+                    using (SqlCommand checkCmd = new SqlCommand(query, conn))
                     {
                         checkCmd.Parameters.AddWithValue("@maMay", maMay);
                         checkCmd.Parameters.AddWithValue("@maPhieuNhap", selectedLohang.Value);
@@ -89,10 +92,9 @@ namespace Quanlilaptop
 
                     // Thêm vào chi tiết phiếu xuất
                     string insertQuery = @"INSERT INTO chitietphieuxuat (maPhieu, maMay, maKho, so_luong, don_gia, maPhieuNhap)
-                       VALUES (@maPhieu, @maMay, @maKho, @so_luong, @don_gia, @maPhieuNhap)";
-                    
+                         VALUES (@maPhieu, @maMay, @maKho, @so_luong, @don_gia, @maPhieuNhap)";
 
-                    using (MySqlCommand insertCmd = new MySqlCommand(insertQuery, conn))
+                    using (SqlCommand insertCmd = new SqlCommand(insertQuery, conn))
                     {
                         insertCmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                         insertCmd.Parameters.AddWithValue("@maMay", maMay);
@@ -131,15 +133,15 @@ namespace Quanlilaptop
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string query = "SELECT maPhieu FROM phieuxuat";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbMaphieu.Items.Clear(); 
+                        cbbMaphieu.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -153,17 +155,18 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadMamayToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string query = "SELECT id FROM sanpham";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMamay.Items.Clear();
 
@@ -179,19 +182,20 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadmakhoToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
                     string query = "SELECT maKho FROM kho";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbMakho.Items.Clear(); 
+                        cbbMakho.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -228,26 +232,26 @@ namespace Quanlilaptop
             string maMay = cbbMamay.SelectedItem.ToString();
             string maKho = cbbMakho.SelectedItem.ToString();
 
-            using (MySqlConnection conn = new MySqlConnection(connectionString))
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 string query = @"
-        SELECT DISTINCT 
-            pn.maPhieu, 
-            ncc.ten_nha_cung_cap, 
-            pn.thoi_gian_tao
-        FROM phieunhap pn
-        JOIN chitietphieunhap ctpn on pn.maPhieu = ctpn.maPhieu
-        JOIN chitietsoluongsanpham ct ON pn.maPhieu = ct.maPhieu
-        JOIN nhacungcap ncc ON pn.ma_nha_cung_cap = ncc.ma_nha_cung_cap
-        WHERE ctpn.maMay = @maMay AND ctpn.maKho = @maKho";
+                SELECT DISTINCT 
+                    pn.maPhieu, 
+                    ncc.ten_nha_cung_cap, 
+                    pn.thoi_gian_tao
+                FROM phieunhap pn
+                JOIN chitietphieunhap ctpn on pn.maPhieu = ctpn.maPhieu
+                JOIN chitietsoluongsanpham ct ON pn.maPhieu = ct.maPhieu
+                JOIN nhacungcap ncc ON pn.ma_nha_cung_cap = ncc.ma_nha_cung_cap
+                WHERE ctpn.maMay = @maMay AND ctpn.maKho = @maKho";
 
-                using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
                     cmd.Parameters.AddWithValue("@maMay", maMay);
                     cmd.Parameters.AddWithValue("@maKho", maKho);
                     conn.Open();
 
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbb_Lohang.Items.Clear();
 
@@ -264,8 +268,6 @@ namespace Quanlilaptop
                 }
             }
         }
-
-
 
         public class ComboBoxItem
         {

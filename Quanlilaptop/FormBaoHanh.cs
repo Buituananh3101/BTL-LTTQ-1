@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -15,24 +15,56 @@ namespace Quanlilaptop
 {
     public partial class FormBaoHanh : Form
     {
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormBaoHanh()
         {
             InitializeComponent();
             napdgvbaohanh();
             dgvBaohanh.CellEndEdit += dgvBaohanh_CellEndEdit;
         }
+
         public void napdgvbaohanh()
         {
-            string sql = "SELECT \r\n    pb.ma_phieu_bao_hanh AS 'Mã Phiếu Bảo Hành',\r\n    pb.ma_phieu_nhap AS 'Mã Phiếu Nhập',\r\n    pb.thoi_gian_nhan AS 'Thời Gian Nhận',\r\n    nv.ho_ten AS 'Người Gửi',\r\n    nv.user_name AS 'Tài Khoản Nhân Viên',\r\n    pb.ghi_chu AS 'Ghi Chú',\r\n    ct.ma_san_pham AS 'Mã Sản Phẩm',\r\n    sp.ten_sanpham AS 'Tên Sản Phẩm',\r\n    ct.so_luong AS 'Số Lượng',\r\n    ct.mo_ta_loi AS 'Mô Tả Lỗi',\r\n    ct.ket_qua_bao_hanh AS 'Kết Quả Bảo Hành'\r\nFROM \r\n    phieubaohanh pb\r\nJOIN \r\n    nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien\r\nJOIN \r\n    chitietbaohanh ct ON pb.ma_phieu_bao_hanh = ct.ma_phieu_bao_hanh\r\nJOIN \r\n    sanpham sp ON ct.ma_san_pham = sp.id;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            string sql = @"SELECT 
+                pb.ma_phieu_bao_hanh AS 'Mã Phiếu Bảo Hành',
+                pb.ma_phieu_nhap AS 'Mã Phiếu Nhập',
+                pb.thoi_gian_nhan AS 'Thời Gian Nhận',
+                nv.ho_ten AS 'Người Gửi',
+                nv.user_name AS 'Tài Khoản Nhân Viên',
+                pb.ghi_chu AS 'Ghi Chú',
+                ct.ma_san_pham AS 'Mã Sản Phẩm',
+                sp.ten_sanpham AS 'Tên Sản Phẩm',
+                ct.so_luong AS 'Số Lượng',
+                ct.mo_ta_loi AS 'Mô Tả Lỗi',
+                ct.ket_qua_bao_hanh AS 'Kết Quả Bảo Hành'
+            FROM 
+                phieubaohanh pb
+            JOIN 
+                nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien
+            JOIN 
+                chitietbaohanh ct ON pb.ma_phieu_bao_hanh = ct.ma_phieu_bao_hanh
+            JOIN 
+                sanpham sp ON ct.ma_san_pham = sp.id;";
+
+            using (SqlConnection conn = new SqlConnection(connString))
             {
-                conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
-                DataTable table = new DataTable();
-                adapter.Fill(table);
-                dgvBaohanh.DataSource = table;
+                try
+                {
+                    conn.Open();
+                    SqlCommand command = new SqlCommand(sql, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(command);
+                    DataTable table = new DataTable();
+                    adapter.Fill(table);
+                    dgvBaohanh.DataSource = table;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi tải dữ liệu bảo hành: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
+
             dgvBaohanh.Columns["Mã Phiếu Bảo Hành"].ReadOnly = true;
             dgvBaohanh.Columns["Mã Phiếu Nhập"].ReadOnly = true;
             dgvBaohanh.Columns["Tài Khoản Nhân Viên"].ReadOnly = true;
@@ -65,14 +97,12 @@ namespace Quanlilaptop
             {
                 try
                 {
-                    string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
-                    using (MySqlConnection conn = new MySqlConnection(connectionString))
+                    using (SqlConnection conn = new SqlConnection(connString))
                     {
                         conn.Open();
 
                         string sql = "DELETE FROM phieubaohanh WHERE ma_phieu_bao_hanh = @maPhieuBaoHanh";
-                        MySqlCommand cmd = new MySqlCommand(sql, conn);
+                        SqlCommand cmd = new SqlCommand(sql, conn);
                         cmd.Parameters.AddWithValue("@maPhieuBaoHanh", maPhieuBaoHanh);
 
                         int rowsAffected = cmd.ExecuteNonQuery();
@@ -81,7 +111,6 @@ namespace Quanlilaptop
                         {
                             MessageBox.Show("Xoá thành công!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             napdgvbaohanh();
-                            dgvBaohanh.DataSource = null;
                         }
                         else
                         {
@@ -122,18 +151,17 @@ namespace Quanlilaptop
 
             try
             {
-                string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
                 string sqlPhieu = @"SELECT pb.ma_phieu_bao_hanh, pb.ma_phieu_nhap, pb.thoi_gian_nhan, nv.ho_ten AS nguoi_gui, pb.ghi_chu 
-                            FROM phieubaohanh pb 
-                            JOIN nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien
-                            WHERE pb.ma_phieu_bao_hanh = @maPhieuBaoHanh";
+                                    FROM phieubaohanh pb 
+                                    JOIN nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien
+                                    WHERE pb.ma_phieu_bao_hanh = @maPhieuBaoHanh";
                 DataTable dtPhieu = new DataTable();
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sqlPhieu, conn);
+                    SqlCommand cmd = new SqlCommand(sqlPhieu, conn);
                     cmd.Parameters.AddWithValue("@maPhieuBaoHanh", maPhieuBaoHanh);
-                    MySqlDataAdapter adt = new MySqlDataAdapter(cmd);
+                    SqlDataAdapter adt = new SqlDataAdapter(cmd);
                     adt.Fill(dtPhieu);
                 }
 
@@ -146,18 +174,19 @@ namespace Quanlilaptop
                 DataRow phieu = dtPhieu.Rows[0];
                 string sqlChiTiet = @"SELECT ct.ma_san_pham AS 'Mã sản phẩm', sp.ten_sanpham AS 'Tên sản phẩm', ct.so_luong AS 'Số lượng', 
                                         ct.mo_ta_loi AS 'Mô tả lỗi', ct.ket_qua_bao_hanh AS 'Kết quả bảo hành'
-                              FROM chitietbaohanh ct
-                              JOIN sanpham sp ON ct.ma_san_pham = sp.id
-                              WHERE ct.ma_phieu_bao_hanh = @maPhieuBaoHanh";
+                                    FROM chitietbaohanh ct
+                                    JOIN sanpham sp ON ct.ma_san_pham = sp.id
+                                    WHERE ct.ma_phieu_bao_hanh = @maPhieuBaoHanh";
                 DataTable dtChiTiet = new DataTable();
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sqlChiTiet, conn);
+                    SqlCommand cmd = new SqlCommand(sqlChiTiet, conn);
                     cmd.Parameters.AddWithValue("@maPhieuBaoHanh", maPhieuBaoHanh);
-                    MySqlDataAdapter adt = new MySqlDataAdapter(cmd);
+                    SqlDataAdapter adt = new SqlDataAdapter(cmd);
                     adt.Fill(dtChiTiet);
                 }
+
                 using (DocX doc = DocX.Create(saveFileDialog.FileName))
                 {
                     doc.InsertParagraph("CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM")
@@ -225,46 +254,44 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-
             string sql = @"
-        SELECT 
-            pb.ma_phieu_bao_hanh AS 'Mã Phiếu Bảo Hành',
-            pb.ma_phieu_nhap AS 'Mã Phiếu Nhập',
-            pb.thoi_gian_nhan AS 'Thời Gian Nhận',
-            nv.ho_ten AS 'Người Gửi',
-            pb.ghi_chu AS 'Ghi Chú',
-            ct.ma_san_pham AS 'Mã Sản Phẩm',
-            sp.ten_sanpham AS 'Tên Sản Phẩm',
-            ct.so_luong AS 'Số Lượng',
-            ct.mo_ta_loi AS 'Mô Tả Lỗi',
-            ct.ket_qua_bao_hanh AS 'Kết Quả Bảo Hành'
-        FROM phieubaohanh pb
-        JOIN nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien
-        JOIN chitietbaohanh ct ON pb.ma_phieu_bao_hanh = ct.ma_phieu_bao_hanh
-        JOIN sanpham sp ON ct.ma_san_pham = sp.id
-        WHERE 
-            pb.ma_phieu_bao_hanh LIKE @keyword OR
-            pb.ma_phieu_nhap LIKE @keyword OR
-            pb.thoi_gian_nhan LIKE @keyword OR
-            nv.ho_ten LIKE @keyword OR
-            pb.ghi_chu LIKE @keyword OR
-            ct.ma_san_pham LIKE @keyword OR
-            sp.ten_sanpham LIKE @keyword OR
-            ct.so_luong LIKE @keyword OR
-            ct.mo_ta_loi LIKE @keyword OR
-            ct.ket_qua_bao_hanh LIKE @keyword
-    ";
+                SELECT 
+                    pb.ma_phieu_bao_hanh AS 'Mã Phiếu Bảo Hành',
+                    pb.ma_phieu_nhap AS 'Mã Phiếu Nhập',
+                    pb.thoi_gian_nhan AS 'Thời Gian Nhận',
+                    nv.ho_ten AS 'Người Gửi',
+                    pb.ghi_chu AS 'Ghi Chú',
+                    ct.ma_san_pham AS 'Mã Sản Phẩm',
+                    sp.ten_sanpham AS 'Tên Sản Phẩm',
+                    ct.so_luong AS 'Số Lượng',
+                    ct.mo_ta_loi AS 'Mô Tả Lỗi',
+                    ct.ket_qua_bao_hanh AS 'Kết Quả Bảo Hành'
+                FROM phieubaohanh pb
+                JOIN nhanvien nv ON pb.nguoi_gui = nv.ma_nhan_vien
+                JOIN chitietbaohanh ct ON pb.ma_phieu_bao_hanh = ct.ma_phieu_bao_hanh
+                JOIN sanpham sp ON ct.ma_san_pham = sp.id
+                WHERE 
+                    CAST(pb.ma_phieu_bao_hanh AS VARCHAR) LIKE @keyword OR
+                    pb.ma_phieu_nhap LIKE @keyword OR
+                    CAST(pb.thoi_gian_nhan AS VARCHAR) LIKE @keyword OR
+                    nv.ho_ten LIKE @keyword OR
+                    pb.ghi_chu LIKE @keyword OR
+                    ct.ma_san_pham LIKE @keyword OR
+                    sp.ten_sanpham LIKE @keyword OR
+                    CAST(ct.so_luong AS VARCHAR) LIKE @keyword OR
+                    ct.mo_ta_loi LIKE @keyword OR
+                    ct.ket_qua_bao_hanh LIKE @keyword
+            ";
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(sql, conn);
+                    SqlCommand cmd = new SqlCommand(sql, conn);
                     cmd.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
 
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     DataTable dt = new DataTable();
                     adapter.Fill(dt);
 
@@ -279,11 +306,12 @@ namespace Quanlilaptop
 
         private void btnSua_Click(object sender, EventArgs e)
         {
-
+            // none
         }
 
         private void dgvBaohanh_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
+            // none
         }
 
         private void btnThem_Click(object sender, EventArgs e)
@@ -296,29 +324,26 @@ namespace Quanlilaptop
         {
             FormSuaBaoHanh suaForm = new FormSuaBaoHanh();
 
-          
             suaForm.BaoHanhUpdated += (s, ev) =>
             {
-                string query = "SELECT * FROM phieubaohanh"; 
-                using (MySqlConnection conn = new MySqlConnection("server=localhost;database=quanlimaytinh;uid=root;pwd=;"))
+                string query = "SELECT * FROM phieubaohanh";
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlDataAdapter da = new MySqlDataAdapter(query, conn);
+                    SqlDataAdapter da = new SqlDataAdapter(query, conn);
                     DataTable dt = new DataTable();
                     da.Fill(dt);
                     dgvBaohanh.DataSource = dt;
-                    
                 }
             };
 
             suaForm.ShowDialog();
             napdgvbaohanh();
-            
         }
 
         private void dgvBaohanh_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-
+            // none
         }
     }
 }

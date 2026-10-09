@@ -1,26 +1,35 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient; // Sử dụng thư viện SQL Server
+using System;
 using System.Collections.Generic;
-using MySql.Data.MySqlClient;
 using System.Data;
+using System.Data.SqlClient;
 
 namespace Quanlilaptop
 {
     internal class Database
     {
-        private static MySqlConnection connection = new MySqlConnection("Data Source=localhost\\SQLEXPRESS; Database=quanlimaytinh2; Integrated Security=true=");
+        // Chuỗi kết nối SQL Server (đã sửa lỗi cú pháp ở Integrated Security và thêm TrustServerCertificate)
+        private static Microsoft.Data.SqlClient.SqlConnection connection = new Microsoft.Data.SqlClient.SqlConnection("Server=localhost\\SQLEXPRESS;Database=quanlimaytinh2;Integrated Security=true;TrustServerCertificate=True;");
+
         public static void Execute(string sql, Dictionary<string, object> parameters = null)
         {
-            connection.Open();
-            MySqlCommand command = new MySqlCommand(sql, connection);
-            if (parameters != null)
-            {
-                foreach (string key in parameters.Keys)
-                {
-                    command.Parameters.Add(new MySqlParameter(key, parameters[key]));
-                }
-            }
             try
             {
+                if (connection.State == ConnectionState.Closed)
+                {
+                    connection.Open();
+                }
+
+                Microsoft.Data.SqlClient.SqlCommand command = new Microsoft.Data.SqlClient.SqlCommand(sql, connection);
+                if (parameters != null)
+                {
+                    foreach (string key in parameters.Keys)
+                    {
+                        // Thay MySqlParameter bằng SqlParameter
+                        command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter(key, parameters[key] ?? DBNull.Value));
+                    }
+                }
+
                 command.ExecuteNonQuery();
             }
             catch (Exception ex)
@@ -29,24 +38,48 @@ namespace Quanlilaptop
             }
             finally
             {
-                connection.Close();
-            }
-        }
-        public static DataTable Query(string sql, Dictionary<string, object> parameters = null)
-        {
-            connection.Open();
-            MySqlCommand command = new MySqlCommand(sql, connection);
-            if (parameters != null)
-            {
-                foreach (string key in parameters.Keys)
+                if (connection.State == ConnectionState.Open)
                 {
-                    command.Parameters.Add(new MySqlParameter(key, parameters[key]));
+                    connection.Close();
                 }
             }
-            MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+        }
+
+        public static DataTable Query(string sql, Dictionary<string, object> parameters = null)
+        {
             DataTable table = new DataTable();
-            adapter.Fill(table);
-            connection.Close();
+            try
+            {
+                if (connection.State == ConnectionState.Closed)
+                {
+                    connection.Open();
+                }
+
+                Microsoft.Data.SqlClient.SqlCommand command = new Microsoft.Data.SqlClient.SqlCommand(sql, connection);
+                if (parameters != null)
+                {
+                    foreach (string key in parameters.Keys)
+                    {
+                        // Thay MySqlParameter bằng SqlParameter
+                        command.Parameters.Add(new Microsoft.Data.SqlClient.SqlParameter(key, parameters[key] ?? DBNull.Value));
+                    }
+                }
+
+                // Thay MySqlDataAdapter bằng SqlDataAdapter
+                Microsoft.Data.SqlClient.SqlDataAdapter adapter = new Microsoft.Data.SqlClient.SqlDataAdapter(command);
+                adapter.Fill(table);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                {
+                    connection.Close();
+                }
+            }
             return table;
         }
     }

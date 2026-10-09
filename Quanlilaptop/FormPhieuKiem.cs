@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Thay thế thư viện MySQL bằng SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -15,19 +15,24 @@ namespace Quanlilaptop
 {
     public partial class FormPhieuKiem : Form
     {
+        // Khai báo chuỗi kết nối chung cho SQL Server
+        private string connectionString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormPhieuKiem()
         {
             InitializeComponent();
             napdgvphieukiem();
         }
+
         public void napdgvphieukiem()
         {
-            string sql = "SELECT ma_phieu AS 'Mã Phiếu', ma_kho AS 'Mã Kho', nguoi_kiem AS 'Người Kiểm', ngay_kiem AS 'Ngày Kiểm', trang_thai AS 'Trạng Thái',  ghi_chu AS 'Ghi Chú' FROM phieukiem;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            string sql = "SELECT ma_phieu AS 'Mã Phiếu', ma_kho AS 'Mã Kho', nguoi_kiem AS 'Người Kiểm', ngay_kiem AS 'Ngày Kiểm', trang_thai AS 'Trạng Thái', ghi_chu AS 'Ghi Chú' FROM phieukiem;";
+
+            using (SqlConnection conn = new SqlConnection(connectionString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvPhieuKiem.DataSource = table;
@@ -36,7 +41,7 @@ namespace Quanlilaptop
 
         private void FormPhieuKiem_Load(object sender, EventArgs e)
         {
-
+            // none
         }
 
         private void btnXoa_Click(object sender, EventArgs e)
@@ -51,11 +56,11 @@ namespace Quanlilaptop
                 {
                     try
                     {
-                        using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                        using (SqlConnection conn = new SqlConnection(connectionString))
                         {
                             conn.Open();
                             string query = "DELETE FROM phieukiem WHERE ma_phieu = @maPhieu";
-                            MySqlCommand cmd = new MySqlCommand(query, conn);
+                            SqlCommand cmd = new SqlCommand(query, conn);
                             cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
 
                             int rowsAffected = cmd.ExecuteNonQuery();
@@ -93,21 +98,23 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connectionString = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
-            string query = @" SELECT ma_phieu, ma_kho, nguoi_kiem, ngay_kiem, trang_thai, ghi_chu 
-                                FROM phieukiem 
-                                WHERE ma_phieu LIKE @keyword 
-                                   OR ma_kho LIKE @keyword 
-                                   OR nguoi_kiem LIKE @keyword 
-                                   OR ngay_kiem LIKE @keyword 
-                                   OR trang_thai LIKE @keyword 
-                                   OR ghi_chu LIKE @keyword;";
+            // Dùng CAST cho cột ngày tháng để tránh lỗi kiểu dữ liệu trong SQL Server khi dùng LIKE
+            string query = @" 
+                SELECT ma_phieu AS 'Mã Phiếu', ma_kho AS 'Mã Kho', nguoi_kiem AS 'Người Kiểm', ngay_kiem AS 'Ngày Kiểm', trang_thai AS 'Trạng Thái', ghi_chu AS 'Ghi Chú'
+                FROM phieukiem 
+                WHERE ma_phieu LIKE @keyword 
+                   OR ma_kho LIKE @keyword 
+                   OR nguoi_kiem LIKE @keyword 
+                   OR CAST(ngay_kiem AS VARCHAR) LIKE @keyword 
+                   OR trang_thai LIKE @keyword 
+                   OR ghi_chu LIKE @keyword;";
+
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connectionString))
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(query, conn);
+                    SqlDataAdapter adapter = new SqlDataAdapter(query, conn);
                     adapter.SelectCommand.Parameters.AddWithValue("@keyword", "%" + keyword + "%");
 
                     DataTable dt = new DataTable();
@@ -135,7 +142,7 @@ namespace Quanlilaptop
             {
                 Filter = "Word Document (*.docx)|*.docx",
                 Title = "Chọn nơi lưu phiếu kiểm",
-                FileName = $"PhieuKiem_{maPhieu}.docx"  
+                FileName = $"PhieuKiem_{maPhieu}.docx"
             };
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
@@ -150,49 +157,55 @@ namespace Quanlilaptop
             {
                 string sqlPhieu = "SELECT * FROM phieukiem WHERE ma_phieu = @maPhieu";
                 string sqlChiTietNhap = @"
-        SELECT ctpn.maMay, sp.ten_sanpham, ctpn.maKho, ctpn.so_luong, ctpn.don_gia, phieu.thoi_gian_tao AS thoi_gian_nhap
-        FROM chitietphieunhap ctpn
-        JOIN sanpham sp ON ctpn.maMay = sp.id
-        JOIN phieunhap phieu ON ctpn.maPhieu = phieu.maPhieu
-        WHERE ctpn.maKho = @maKho";
+                    SELECT ctpn.maMay, sp.ten_sanpham, ctpn.maKho, ctpn.so_luong, ctpn.don_gia, phieu.thoi_gian_tao AS thoi_gian_nhap
+                    FROM chitietphieunhap ctpn
+                    JOIN sanpham sp ON ctpn.maMay = sp.id
+                    JOIN phieunhap phieu ON ctpn.maPhieu = phieu.maPhieu
+                    WHERE ctpn.maKho = @maKho";
 
                 string sqlChiTietXuat = @"
-        SELECT ctpn.maMay, sp.ten_sanpham, ctpn.maKho, ctpn.so_luong, ctpn.don_gia, phieu.thoi_gian_tao AS thoi_gian_xuat
-        FROM chitietphieuxuat ctpn
-        JOIN sanpham sp ON ctpn.maMay = sp.id
-        JOIN phieuxuat phieu ON ctpn.maPhieu = phieu.maPhieu
-        WHERE ctpn.maKho = @maKho";
+                    SELECT ctpx.maMay, sp.ten_sanpham, ctpx.maKho, ctpx.so_luong, ctpx.don_gia, phieu.thoi_gian_tao AS thoi_gian_xuat
+                    FROM chitietphieuxuat ctpx
+                    JOIN sanpham sp ON ctpx.maMay = sp.id
+                    JOIN phieuxuat phieu ON ctpx.maPhieu = phieu.maPhieu
+                    WHERE ctpx.maKho = @maKho";
 
                 DataTable tblPhieu = new DataTable();
                 DataTable tblChiTietNhap = new DataTable();
                 DataTable tblChiTietXuat = new DataTable();
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+
+                using (SqlConnection conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
 
-                    using (MySqlCommand cmd = new MySqlCommand(sqlPhieu, conn))
+                    using (SqlCommand cmd = new SqlCommand(sqlPhieu, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblPhieu);
                     }
-                    using (MySqlCommand cmd = new MySqlCommand(sqlChiTietNhap, conn))
+
+                    if (tblPhieu.Rows.Count == 0)
                     {
-                        cmd.Parameters.AddWithValue("@maKho", tblPhieu.Rows[0]["ma_kho"]);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        MessageBox.Show("Không tìm thấy phiếu kiểm!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    string maKho = tblPhieu.Rows[0]["ma_kho"].ToString();
+
+                    using (SqlCommand cmd = new SqlCommand(sqlChiTietNhap, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@maKho", maKho);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblChiTietNhap);
                     }
-                    using (MySqlCommand cmd = new MySqlCommand(sqlChiTietXuat, conn))
+
+                    using (SqlCommand cmd = new SqlCommand(sqlChiTietXuat, conn))
                     {
-                        cmd.Parameters.AddWithValue("@maKho", tblPhieu.Rows[0]["ma_kho"]);
-                        MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                        cmd.Parameters.AddWithValue("@maKho", maKho);
+                        SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                         adapter.Fill(tblChiTietXuat);
                     }
-                }
-                if (tblPhieu.Rows.Count == 0)
-                {
-                    MessageBox.Show("Không tìm thấy phiếu kiểm!", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
                 }
 
                 using (var doc = DocX.Create(filePath))
@@ -204,14 +217,16 @@ namespace Quanlilaptop
 
                     doc.InsertParagraph("PHIẾU KIỂM")
                         .Font("Times New Roman").Bold().FontSize(16).SpacingBefore(20).SpacingAfter(20).Alignment = Alignment.center;
+
                     DataRow row = tblPhieu.Rows[0];
                     string info = $"Mã phiếu: {row["ma_phieu"]}\n"
-                                + $"Ngày kiểm: {Convert.ToDateTime(row["ngay_kiem"]).ToString("dd/MM/yyyy HH:mm")}\n"
+                                + $"Ngày kiểm: {Convert.ToDateTime(row["ngay_kiem"]).ToString("dd/MM/yyyy")}\n"
                                 + $"Người kiểm: {row["nguoi_kiem"]}\n"
                                 + $"Trạng thái: {row["trang_thai"]}\n"
                                 + $"Ghi chú: {row["ghi_chu"]}";
 
                     doc.InsertParagraph(info).Font("Times New Roman").FontSize(12).SpacingAfter(20);
+
                     if (tblChiTietNhap.Rows.Count > 0)
                     {
                         doc.InsertParagraph("Chi tiết nhập")
@@ -235,7 +250,9 @@ namespace Quanlilaptop
                             {
                                 tableNhap.Rows[i + 1].Cells[j].Paragraphs[0].Append(tblChiTietNhap.Rows[i][j].ToString());
                             }
-                            tableNhap.Rows[i + 1].Cells[5].Paragraphs[0].Append(Convert.ToDateTime(tblChiTietNhap.Rows[i]["thoi_gian_nhap"]).ToString("dd/MM/yyyy HH:mm"));
+                            var tgNhap = tblChiTietNhap.Rows[i]["thoi_gian_nhap"];
+                            string tgNhapStr = tgNhap == DBNull.Value ? "" : Convert.ToDateTime(tgNhap).ToString("dd/MM/yyyy HH:mm");
+                            tableNhap.Rows[i + 1].Cells[5].Paragraphs[0].Append(tgNhapStr);
                         }
 
                         doc.InsertTable(tableNhap);
@@ -243,7 +260,7 @@ namespace Quanlilaptop
 
                     if (tblChiTietXuat.Rows.Count > 0)
                     {
-                        doc.InsertParagraph("Chi tiết xuất")
+                        doc.InsertParagraph("\nChi tiết xuất")
                             .Font("Times New Roman")
                             .FontSize(14)
                             .Bold()
@@ -264,7 +281,9 @@ namespace Quanlilaptop
                             {
                                 tableXuat.Rows[i + 1].Cells[j].Paragraphs[0].Append(tblChiTietXuat.Rows[i][j].ToString());
                             }
-                            tableXuat.Rows[i + 1].Cells[5].Paragraphs[0].Append(Convert.ToDateTime(tblChiTietXuat.Rows[i]["thoi_gian_xuat"]).ToString("dd/MM/yyyy HH:mm"));
+                            var tgXuat = tblChiTietXuat.Rows[i]["thoi_gian_xuat"];
+                            string tgXuatStr = tgXuat == DBNull.Value ? "" : Convert.ToDateTime(tgXuat).ToString("dd/MM/yyyy HH:mm");
+                            tableXuat.Rows[i + 1].Cells[5].Paragraphs[0].Append(tgXuatStr);
                         }
 
                         doc.InsertTable(tableXuat);
@@ -284,6 +303,7 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi xuất phiếu: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void btnSua_Click(object sender, EventArgs e)
         {
             FormSuaPhieuKiem form = new FormSuaPhieuKiem(this);

@@ -1,5 +1,4 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -8,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 using Xceed.Document.NET;
 using Xceed.Words.NET;
 
@@ -16,6 +16,9 @@ namespace Quanlilaptop
     public partial class FormThanhToanCongNo : Form
     {
         private FormCongNo formCN;
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormThanhToanCongNo(FormCongNo form)
         {
             InitializeComponent();
@@ -28,32 +31,34 @@ namespace Quanlilaptop
         {
             this.Close();
         }
+
         public void napdgvThanhtoan()
         {
             string sql = "SELECT ma_thanh_toan AS 'Mã Thanh Toán',  ma_cong_no AS 'Mã Công Nợ'," +
                 "  ngay_thanh_toan AS 'Ngày Thanh Toán', so_tien_thanh_toan AS 'Số Tiền Thanh Toán', " +
                 " phuong_thuc AS 'Phương Thức Thanh Toán',  ghi_chu AS 'Ghi Chú' FROM thanhtoancongno;";
-            using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+            using (SqlConnection conn = new SqlConnection(connString))
             {
                 conn.Open();
-                MySqlCommand command = new MySqlCommand(sql, conn);
-                MySqlDataAdapter adapter = new MySqlDataAdapter(command);
+                SqlCommand command = new SqlCommand(sql, conn);
+                SqlDataAdapter adapter = new SqlDataAdapter(command);
                 DataTable table = new DataTable();
                 adapter.Fill(table);
                 dgvThanhtoan.DataSource = table;
             }
         }
+
         private void LoadmacongnoToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT ma_cong_no FROM congnonhacungcap";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         cbbMaCN.Items.Clear();
 
@@ -89,17 +94,17 @@ namespace Quanlilaptop
                 MessageBox.Show("Vui lòng nhập đầy đủ và chính xác thông tin!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
+
             string insertQuery = @"
-        INSERT INTO thanhtoancongno (ma_thanh_toan,ma_cong_no, ngay_thanh_toan, so_tien_thanh_toan, phuong_thuc, ghi_chu)
-        VALUES (@mathanhToan,@maCongNo, @ngayThanhToan, @soTienThanhToan, @phuongThuc, @ghiChu)";
+            INSERT INTO thanhtoancongno (ma_thanh_toan, ma_cong_no, ngay_thanh_toan, so_tien_thanh_toan, phuong_thuc, ghi_chu)
+            VALUES (@mathanhToan, @maCongNo, @ngayThanhToan, @soTienThanhToan, @phuongThuc, @ghiChu)";
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(insertQuery, conn);
+                    SqlCommand cmd = new SqlCommand(insertQuery, conn);
                     cmd.Parameters.AddWithValue("@mathanhToan", mathanhToan);
                     cmd.Parameters.AddWithValue("@maCongNo", maCongNo);
                     cmd.Parameters.AddWithValue("@ngayThanhToan", ngayThanhToan);
@@ -147,23 +152,22 @@ namespace Quanlilaptop
                 return;
             }
 
-            string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
             string updateQuery = @"
-        UPDATE thanhtoancongno
-        SET 
-            ma_cong_no = @maCongNo,
-            ngay_thanh_toan = @ngayThanhToan,
-            so_tien_thanh_toan = @soTienThanhToan,
-            phuong_thuc = @phuongThucThanhToan,
-            ghi_chu = @ghiChu
-        WHERE ma_thanh_toan = @maThanhToan";
+            UPDATE thanhtoancongno
+            SET 
+                ma_cong_no = @maCongNo,
+                ngay_thanh_toan = @ngayThanhToan,
+                so_tien_thanh_toan = @soTienThanhToan,
+                phuong_thuc = @phuongThucThanhToan,
+                ghi_chu = @ghiChu
+            WHERE ma_thanh_toan = @maThanhToan";
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection(connStr))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(updateQuery, conn);
+                    SqlCommand cmd = new SqlCommand(updateQuery, conn);
                     cmd.Parameters.AddWithValue("@maThanhToan", maThanhToan);
                     cmd.Parameters.AddWithValue("@maCongNo", maCongNo);
                     cmd.Parameters.AddWithValue("@ngayThanhToan", ngayThanhToan);
@@ -197,21 +201,20 @@ namespace Quanlilaptop
             {
                 string maThanhToan = dgvThanhtoan.SelectedRows[0].Cells["Mã Thanh Toán"].Value.ToString();
                 DialogResult result = MessageBox.Show($"Bạn có chắc chắn muốn xóa phiếu thanh toán có mã {maThanhToan}?",
-                                                      "Xác nhận xóa",
-                                                      MessageBoxButtons.YesNo,
-                                                      MessageBoxIcon.Warning);
+                                                    "Xác nhận xóa",
+                                                    MessageBoxButtons.YesNo,
+                                                    MessageBoxIcon.Warning);
 
                 if (result == DialogResult.Yes)
                 {
                     try
                     {
-                        string connStr = "Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password=";
                         string query = "DELETE FROM thanhtoancongno WHERE ma_thanh_toan = @maThanhToan";
 
-                        using (MySqlConnection conn = new MySqlConnection(connStr))
+                        using (SqlConnection conn = new SqlConnection(connString))
                         {
                             conn.Open();
-                            MySqlCommand cmd = new MySqlCommand(query, conn);
+                            SqlCommand cmd = new SqlCommand(query, conn);
                             cmd.Parameters.AddWithValue("@maThanhToan", maThanhToan);
 
                             int rowsAffected = cmd.ExecuteNonQuery();
@@ -251,7 +254,7 @@ namespace Quanlilaptop
                 string phuongThucThanhToan = dgvThanhtoan.Rows[e.RowIndex].Cells["Phương Thức Thanh Toán"].Value.ToString();
                 string ghiChu = dgvThanhtoan.Rows[e.RowIndex].Cells["Ghi Chú"].Value.ToString();
 
-                txtPhuongthuc.Text = phuongThucThanhToan;  
+                txtPhuongthuc.Text = phuongThucThanhToan;
                 cbbMaCN.SelectedItem = maCongNo;
                 dtpTT.Value = ngayThanhToan;
                 txtSotien.Text = soTienThanhToan.ToString();
@@ -284,22 +287,23 @@ namespace Quanlilaptop
                 XuatPhieuThanhToanWord(maThanhToan, maCongNo, ngayThanhToan, soTienThanhToan, phuongThucThanhToan, ghiChu, saveFileDialog.FileName);
             }
         }
+
         private void XuatPhieuThanhToanWord(string maThanhToan, string maCongNo, DateTime ngayThanhToan, decimal soTienThanhToan, string phuongThucThanhToan, string ghiChu, string filePath)
         {
             try
             {
                 string query = @"
-            SELECT ma_thanh_toan, ma_cong_no, ngay_thanh_toan, so_tien_thanh_toan, phuong_thuc, ghi_chu 
-            FROM thanhtoancongno 
-            WHERE ma_thanh_toan = @maThanhToan";
+                SELECT ma_thanh_toan, ma_cong_no, ngay_thanh_toan, so_tien_thanh_toan, phuong_thuc, ghi_chu 
+                FROM thanhtoancongno 
+                WHERE ma_thanh_toan = @maThanhToan";
 
                 DataTable dt = new DataTable();
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
-                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    SqlCommand cmd = new SqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@maThanhToan", maThanhToan);
-                    MySqlDataAdapter adapter = new MySqlDataAdapter(cmd);
+                    SqlDataAdapter adapter = new SqlDataAdapter(cmd);
                     adapter.Fill(dt);
                 }
 

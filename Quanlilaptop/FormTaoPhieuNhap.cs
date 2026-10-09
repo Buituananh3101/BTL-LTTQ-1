@@ -1,7 +1,7 @@
-﻿using MySql.Data.MySqlClient;
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Microsoft.Data.SqlClient; // Đổi sang thư viện SQL Server
 
 namespace Quanlilaptop
 {
@@ -15,6 +15,10 @@ namespace Quanlilaptop
 
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HTCAPTION = 0x2;
+
+        // Chuỗi kết nối SQL Server chung cho form
+        private string connString = "Server=localhost\\SQLEXPRESS;Database=quanlimaytinh;Integrated Security=true;TrustServerCertificate=True;";
+
         public FormTaoPhieuNhap()
         {
             InitializeComponent();
@@ -50,13 +54,13 @@ namespace Quanlilaptop
 
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = @"INSERT INTO phieunhap (maPhieu, thoi_gian_tao, nguoi_tao, ma_nha_cung_cap, tong_tien)
                              VALUES (@maPhieu, @thoi_gian_tao, @nguoi_tao, @ma_nha_cung_cap, 0)";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@maPhieu", maPhieu);
                         cmd.Parameters.AddWithValue("@thoi_gian_tao", thoi_gian_tao);
@@ -93,19 +97,20 @@ namespace Quanlilaptop
                 SendMessage(this.Handle, WM_NCLBUTTONDOWN, HTCAPTION, 0);
             }
         }
+
         private void Loadnguoi_taoToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT userName FROM account";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbnguoi_tao.Items.Clear(); 
+                        cbbnguoi_tao.Items.Clear();
 
                         while (reader.Read())
                         {
@@ -119,19 +124,20 @@ namespace Quanlilaptop
                 MessageBox.Show("Lỗi khi load ComboBox: " + ex.Message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
         private void LoadNhaCCToComboBox()
         {
             try
             {
-                using (MySqlConnection conn = new MySqlConnection("Server=localhost;Database=quanlimaytinh;Port=3306;User ID=root;Password="))
+                using (SqlConnection conn = new SqlConnection(connString))
                 {
                     conn.Open();
                     string query = "SELECT ma_nha_cung_cap FROM nhacungcap";
 
-                    using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                    using (MySqlDataReader reader = cmd.ExecuteReader())
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
                     {
-                        cbbNhaCC.Items.Clear(); 
+                        cbbNhaCC.Items.Clear();
 
                         while (reader.Read())
                         {
