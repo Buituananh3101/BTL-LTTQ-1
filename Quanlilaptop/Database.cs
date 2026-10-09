@@ -16,7 +16,7 @@ namespace Quanlilaptop
             {
                 foreach (string key in parameters.Keys)
                 {
-                    command.Parameters.Add(new MySqlParameter(key, parameters[key]));
+                    command.Parameters.Add(new MySqlParameter(key, parameters[key])); 
                 }
             }
             try
